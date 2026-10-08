@@ -1,0 +1,269 @@
+{
+  "Format": "BEJSON",
+  "Format_Version": "104",
+  "Format_Creator": "Elton Boehnen",
+  "Parent_Hierarchy": "../104a.mfdb.bejson",
+  "Records_Type": [
+    "Metadata"
+  ],
+  "Fields": [
+    {
+      "name": "RECORD_TYPE",
+      "type": "string"
+    },
+    {
+      "name": "LIBRARY_FAMILY",
+      "type": "string"
+    },
+    {
+      "name": "LANGUAGE",
+      "type": "string"
+    },
+    {
+      "name": "KEY",
+      "type": "string"
+    },
+    {
+      "name": "VALUE",
+      "type": "string"
+    },
+    {
+      "name": "DESCRIPTION",
+      "type": "string"
+    }
+  ],
+  "Values": [
+    [
+      "VERSION",
+      "ECOSYSTEM",
+      "ALL",
+      "CURRENT_VERSION",
+      "2.0.43",
+      "Overall library ecosystem version (bumped for 2026-08-15 registry-drift cleanup: 13 VERSION rows backfilled, families/dependencies/errors registries reconciled, Terminal_Menus error codes renumbered)"
+    ],
+    [
+      "VERSION",
+      "Core",
+      "PY",
+      "CURRENT_VERSION",
+      "2.4.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "Core",
+      "JS",
+      "CURRENT_VERSION",
+      "2.3.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "Core",
+      "TS",
+      "CURRENT_VERSION",
+      "2.4.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "Core",
+      "SH",
+      "CURRENT_VERSION",
+      "1.4.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "Core_Nesting",
+      "PY",
+      "CURRENT_VERSION",
+      "0.4.1",
+      ""
+    ],
+    [
+      "VERSION",
+      "Core_Nesting",
+      "JS",
+      "CURRENT_VERSION",
+      "0.4.1",
+      ""
+    ],
+    [
+      "VERSION",
+      "Core_Nesting",
+      "TS",
+      "CURRENT_VERSION",
+      "0.4.1",
+      ""
+    ],
+    [
+      "VERSION",
+      "Core_Nesting",
+      "SH",
+      "CURRENT_VERSION",
+      "0.4.1",
+      ""
+    ],
+    [
+      "VERSION",
+      "Cognition",
+      "PY",
+      "CURRENT_VERSION",
+      "1.0.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "MD",
+      "PY",
+      "CURRENT_VERSION",
+      "1.1.0",
+      "Note: lib_bejson_MD_md_errors.py bumped to 1.2.0 on 2026-08-15 (error codes renumbered 70-79 -> 90-99 to resolve Core collision; Core is priority)"
+    ],
+    [
+      "RULE",
+      "Core",
+      "ALL",
+      "LANGUAGE_PARITY_REQUIRED",
+      "true",
+      "Core is the only family required to be implemented in parity across all four language systems (PY/JS/TS/SH). Confirmed by Elton Boehnen, 2026-07-18."
+    ],
+    [
+      "RULE",
+      "ALL",
+      "ALL",
+      "MFDB_IS_PART_OF_CORE",
+      "true",
+      "MFDB is implemented as part of the Core family, not a separate family directory or a family requiring its own errors file. Confirmed by Elton Boehnen, 2026-07-18."
+    ],
+    [
+      "RULE",
+      "ALL",
+      "ALL",
+      "FAMILY_OWNS_ITS_ERROR_CODES",
+      "true",
+      "Each family maintains its own lib_bejson_<Family>_bejson_errors.<ext> file. Core must not hold error codes belonging to another family."
+    ],
+    [
+      "RULE",
+      "ALL",
+      "ALL",
+      "BEJSON_ACRONYM_DEFINITION",
+      "BOEHNEN ELTON JSON",
+      "BEJSON stands for BOEHNEN ELTON JSON. This is the sole authoritative definition; no other expansion of the acronym is valid. Confirmed by Elton Boehnen, 2026-07-21. Also stated verbatim in the header of all four Core language files (PY/JS/TS/SH)."
+    ],
+    [
+      "RULE",
+      "System",
+      "PY",
+      "PMS_DEPRECATED",
+      "true",
+      "lib_bejson_System_be_pms.py and lib_bejson_System_be_project_service.py are deprecated as of 2026-07-21 and moved to Lib_PY/System/Deprecated/. The project/package management system is being rebuilt from scratch; do not import, extend, or reference these files in new work. Confirmed by Elton Boehnen, 2026-07-21."
+    ],
+    [
+      "VERSION",
+      "AI",
+      "PY",
+      "CURRENT_VERSION",
+      "3.0.1",
+      ""
+    ],
+    [
+      "VERSION",
+      "CMS",
+      "PY",
+      "CURRENT_VERSION",
+      "3.0.1",
+      ""
+    ],
+    [
+      "VERSION",
+      "Chunker",
+      "PY",
+      "CURRENT_VERSION",
+      "2.0.4",
+      ""
+    ],
+    [
+      "VERSION",
+      "Gaming",
+      "PY",
+      "CURRENT_VERSION",
+      "2.2.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "HTML",
+      "PY",
+      "CURRENT_VERSION",
+      "3.1.2",
+      ""
+    ],
+    [
+      "VERSION",
+      "System",
+      "PY",
+      "CURRENT_VERSION",
+      "3.0.1",
+      ""
+    ],
+    [
+      "VERSION",
+      "Utility",
+      "PY",
+      "CURRENT_VERSION",
+      "2.4.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "ExpCMS",
+      "PY",
+      "CURRENT_VERSION",
+      "6.2.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "BEHTML",
+      "PY",
+      "CURRENT_VERSION",
+      "0.4.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "BEHTML_IDE",
+      "PY",
+      "CURRENT_VERSION",
+      "0.1.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "Diagrams",
+      "PY",
+      "CURRENT_VERSION",
+      "1.0.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "Schedules",
+      "SH",
+      "CURRENT_VERSION",
+      "1.0.0",
+      ""
+    ],
+    [
+      "VERSION",
+      "Terminal_Menus",
+      "SH",
+      "CURRENT_VERSION",
+      "2.0.0",
+      "Bumped 1.0.0 -> 2.0.0 for the 200-206 -> 340-346 error-code renumber (breaking rename)"
+    ]
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "Format": "BEJSON",
+  "Format_Version": "104",
+  "Format_Creator": "Elton Boehnen",
+  "Parent_Hierarchy": "../104a.mfdb.bejson",
+  "Records_Type": [
+    "Schemas"
+  ],
+  "Fields": [
+    {
+      "name": "SCHEMA_NAME",
+      "type": "string"
+    },
+    {
+      "name": "OWNING_FAMILY",
+      "type": "string"
+    },
+    {
+      "name": "LANGUAGE",
+      "type": "string"
+    },
+    {
+      "name": "VERSION",
+      "type": "string"
+    },
+    {
+      "name": "FIELD_DEFINITIONS",
+      "type": "string"
+    },
+    {
+      "name": "DESCRIPTION",
+      "type": "string"
+    },
+    {
+      "name": "SOURCE_FILE",
+      "type": "string"
+    }
+  ],
+  "Values": [
+    [
+      "SCHEMA_PROJECT_v140",
+      "System",
+      "PY",
+      "1.40",
+      "[{\"name\": \"record_type_parent\", \"type\": \"string\"}, {\"name\": \"project_id\", \"type\": \"string\"}, {\"name\": \"project_name\", \"type\": \"string\"}, {\"name\": \"project_path\", \"type\": \"string\"}, {\"name\": \"version\", \"type\": \"string\"}, {\"name\": \"created_at\", \"type\": \"string\"}, {\"name\": \"project_type\", \"type\": \"string\"}, {\"name\": \"is_active\", \"type\": \"boolean\"}, {\"name\": \"is_visible\", \"type\": \"boolean\"}, {\"name\": \"is_missing\", \"type\": \"boolean\"}, {\"name\": \"description\", \"type\": \"string\"}, {\"name\": \"tags\", \"type\": \"string\"}, {\"name\": \"primary_agent\", \"type\": \"string\"}, {\"name\": \"last_sync\", \"type\": \"string\"}, {\"name\": \"file_count\", \"type\": \"integer\"}, {\"name\": \"total_size_kb\", \"type\": \"number\"}, {\"name\": \"git_enabled\", \"type\": \"boolean\"}, {\"name\": \"priority\", \"type\": \"integer\"}, {\"name\": \"category\", \"type\": \"string\"}, {\"name\": \"internal_notes\", \"type\": \"string\"}, {\"name\": \"is_archived\", \"type\": \"boolean\"}, {\"name\": \"is_reset_protected\", \"type\": \"boolean\"}]",
+      "Project registry schema (22 fields). Consumed only by the deprecated be_project_service.py (Lib_PY/System/Deprecated/). PMS is being rebuilt from scratch (per metadata.bejson PMS_DEPRECATED rule) - migrated here as-is for reference, not dropped, since no replacement schema exists yet. Do not build new work against this until PMS rebuild lands.",
+      "Lib_PY/Core/lib_bejson_Core_bejson_schema.py"
+    ],
+    [
+      "SCHEMA_MFDB_ENTITY",
+      "Core",
+      "PY",
+      "5",
+      "[{\"name\": \"version\", \"type\": \"string\"}, {\"name\": \"file_path\", \"type\": \"string\"}, {\"name\": \"file_name\", \"type\": \"string\"}, {\"name\": \"content\", \"type\": \"string\"}, {\"name\": \"is_binary\", \"type\": \"boolean\"}, {\"name\": \"is_base64\", \"type\": \"boolean\"}]",
+      "MFDB Chunker v5 entity schema (6 fields: version/file_path/file_name/content/is_binary/is_base64). TRUE DUPLICATE resolved: diffed byte-for-byte identical field lists between Core.SCHEMA_MFDB_ENTITY_v5 and Utility.SCHEMA_MFDB_ENTITY - genuinely the same schema under two names in two files. Merged into this single DB row as the one source of truth.",
+      "Lib_PY/Core/lib_bejson_Core_bejson_schema.py (as SCHEMA_MFDB_ENTITY_v5); Lib_PY/Utility/lib_bejson_Utility_bejson_utility.py (as SCHEMA_MFDB_ENTITY)"
+    ],
+    [
+      "SCHEMA_MFDB_MANIFEST_v5",
+      "Core",
+      "PY",
+      "5",
+      "[{\"name\": \"entity_name\", \"type\": \"string\"}, {\"name\": \"file_path\", \"type\": \"string\"}, {\"name\": \"description\", \"type\": \"string\"}, {\"name\": \"record_count\", \"type\": \"integer\"}, {\"name\": \"schema_version\", \"type\": \"string\"}, {\"name\": \"primary_key\", \"type\": \"string\"}, {\"name\": \"changelog\", \"type\": \"string\"}, {\"name\": \"chunked_at\", \"type\": \"string\"}, {\"name\": \"tags\", \"type\": \"string\"}]",
+      "MFDB Chunker v5 manifest schema (9 fields).",
+      "Lib_PY/Core/lib_bejson_Core_bejson_schema.py"
+    ],
+    [
+      "SCHEMA_MODEL_REGISTRY__Core",
+      "Core",
+      "PY",
+      "2.1.2",
+      "{\"Records_Type\": [\"AI_Model\"], \"Fields\": [{\"name\": \"display_name\", \"type\": \"string\"}, {\"name\": \"model_id\", \"type\": \"string\"}, {\"name\": \"currently_active\", \"type\": \"boolean\"}, {\"name\": \"thinking_enabled\", \"type\": \"boolean\"}, {\"name\": \"google_search_enabled\", \"type\": \"boolean\"}]}",
+      "AI_Model registry (Gemini models: display_name/model_id/currently_active/thinking_enabled/google_search_enabled). NAME COLLISION resolved, not a duplicate: diffed against AI.SCHEMA_MODEL_REGISTRY and confirmed they are genuinely different schemas (different Records_Type, different field sets, different model vendor) that happen to share the same Python constant name in two files. Kept as two separate DB rows, distinguished here by OWNING_FAMILY suffix in SCHEMA_NAME. Flagging for you: the identical constant name across Core and AI risks accidental shadowing/confusion at import time - candidate for a rename in a future confirmed pass (out of scope this turn, not touched).",
+      "Lib_PY/Core/lib_bejson_Core_bejson_schema.py"
+    ],
+    [
+      "SCHEMA_MODEL_REGISTRY__AI",
+      "AI",
+      "PY",
+      "n/a",
+      "{\"Schema_Name\": \"OpenRouterModelRegistry\", \"Records_Type\": [\"OpenRouterModel\"], \"Fields\": [{\"name\": \"model_name\", \"type\": \"string\"}, {\"name\": \"model_id\", \"type\": \"string\"}, {\"name\": \"currently_active\", \"type\": \"boolean\"}, {\"name\": \"thinking_enabled\", \"type\": \"boolean\"}]}",
+      "OpenRouterModelRegistry (OpenRouter models: model_name/model_id/currently_active/thinking_enabled). See SCHEMA_MODEL_REGISTRY__Core note - same constant name as the Core schema but a genuinely different schema, not a duplicate to merge.",
+      "Lib_PY/AI/lib_bejson_AI_bejson_openrouter.py"
+    ],
+    [
+      "SCHEMA_SITECONFIG",
+      "CMS",
+      "PY",
+      "n/a",
+      "[{\"name\": \"config_key\", \"type\": \"string\"}, {\"name\": \"config_value\", \"type\": \"string\"}, {\"name\": \"description\", \"type\": \"string\"}]",
+      "Site configuration key/value schema (3 fields).",
+      "Lib_PY/CMS/lib_bejson_CMS_cms_mfdb.py"
+    ],
+    [
+      "SCHEMA_KEY_REGISTRY",
+      "AI",
+      "PY",
+      "n/a",
+      "{\"Schema_Name\": \"OpenRouterKeyRegistry\", \"Records_Type\": [\"ApiKey\"], \"Fields\": [{\"name\": \"key_slot\", \"type\": \"integer\"}, {\"name\": \"key\", \"type\": \"string\"}]}",
+      "OpenRouterKeyRegistry - API key slot schema (2 fields).",
+      "Lib_PY/AI/lib_bejson_AI_bejson_openrouter.py"
+    ],
+    [
+      "SCHEMA_AI_PROFILE",
+      "AI",
+      "PY",
+      "n/a",
+      "{\"Records_Type\": [\"AI_Profile\"], \"Parent_Hierarchy\": \"/LLM_Configuration\", \"Fields\": [{\"name\": \"Record_Type_Parent\", \"type\": \"string\"}, {\"name\": \"Name\", \"type\": \"string\"}, {\"name\": \"Archetype\", \"type\": \"string\"}, {\"name\": \"Persona\", \"type\": \"string\"}, {\"name\": \"SystemInstruction\", \"type\": \"string\"}, {\"name\": \"ForbiddenTopics\", \"type\": \"array\"}, {\"name\": \"Avatar_Type\", \"type\": \"string\"}, {\"name\": \"Avatar_sourceUrl\", \"type\": \"string\"}, {\"name\": \"Avatar_Data\", \"type\": \"string\"}, {\"name\": \"MaxResponseTokens\", \"type\": \"integer\"}, {\"name\": \"Creativity\", \"type\": \"number\"}, {\"name\": \"Tone\", \"type\": \"array\"}, {\"name\": \"Formality\", \"type\": \"string\"}, {\"name\": \"Verbosity\", \"type\": \"string\"}, {\"name\": \"EmotionalExpression_Enabled\", \"type\": \"boolean\"}, {\"name\": \"EmotionalExpression_Intensity\", \"type\": \"number\"}, {\"name\": \"GoogleSearch_Enabled\", \"type\": \"boolean\"}, {\"name\": \"CodeInterpreter_Enabled\", \"type\": \"boolean\"}, {\"name\": \"EphemeralMemory\", \"type\": \"boolean\"}, {\"name\": \"CodeParsing_Mode\", \"type\": \"string\"}, {\"name\": \"CodeParsing_Languages\", \"type\": \"array\"}, {\"name\": \"CodeParsing_StructureValidation\", \"type\": \"boolean\"}, {\"name\": \"CodeParsing_VersionControl\", \"type\": \"boolean\"}, {\"name\": \"Thinking_Supported\", \"type\": \"boolean\"}]}",
+      "AI persona/profile schema (24 fields): Name, Archetype, Persona, SystemInstruction, ForbiddenTopics, avatar config, response-tuning (MaxResponseTokens/Creativity/Tone/Formality/Verbosity), emotional-expression toggles, tool toggles (GoogleSearch, CodeInterpreter), EphemeralMemory, and code-parsing config.",
+      "Lib_PY/AI/lib_bejson_AI_bejson_openrouter.py"
+    ],
+    [
+      "SCHEMA_CLI_CHUNKER",
+      "Utility",
+      "PY",
+      "n/a",
+      "[{\"name\": \"Record_Type_Parent\", \"type\": \"string\"}, {\"name\": \"project_name\", \"type\": \"string\", \"Record_Type_Parent\": \"ProjectMeta\"}, {\"name\": \"version\", \"type\": \"string\", \"Record_Type_Parent\": \"ProjectMeta\"}, {\"name\": \"root_path\", \"type\": \"string\", \"Record_Type_Parent\": \"ProjectMeta\"}, {\"name\": \"file_path\", \"type\": \"string\", \"Record_Type_Parent\": \"FileContent\"}, {\"name\": \"file_name\", \"type\": \"string\", \"Record_Type_Parent\": \"FileContent\"}, {\"name\": \"content\", \"type\": \"string\", \"Record_Type_Parent\": \"FileContent\"}, {\"name\": \"is_binary\", \"type\": \"boolean\", \"Record_Type_Parent\": \"FileContent\"}]",
+      "CLI chunker EAV-style schema (8 fields, ProjectMeta/FileContent record types).",
+      "Lib_PY/Utility/lib_bejson_Utility_bejson_utility.py"
+    ]
+  ]
+}

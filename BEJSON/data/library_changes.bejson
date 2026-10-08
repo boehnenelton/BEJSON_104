@@ -1,0 +1,488 @@
+{
+  "Format": "BEJSON",
+  "Format_Version": "104",
+  "Format_Creator": "Elton Boehnen",
+  "Parent_Hierarchy": "../104a.mfdb.bejson",
+  "Records_Type": [
+    "Library_Changes"
+  ],
+  "Fields": [
+    {
+      "name": "LIBRARY_FAMILY",
+      "type": "string"
+    },
+    {
+      "name": "LANGUAGE",
+      "type": "string"
+    },
+    {
+      "name": "LIBRARY_FILE",
+      "type": "string"
+    },
+    {
+      "name": "CHANGE_DATE",
+      "type": "string"
+    },
+    {
+      "name": "CHANGE_DETAILS",
+      "type": "string"
+    }
+  ],
+  "Values": [
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/104a.mfdb.bejson",
+      "2026-07-18",
+      "Rebuilt manifest: added Families entity, bumped MFDB_Version/Schema_Version"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/errors.bejson",
+      "2026-07-18",
+      "Rebuilt as the global cross-family error code map; populated with Core, Core_Nesting, Cognition, MD codes across all languages"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/metadata.bejson",
+      "2026-07-18",
+      "Rebuilt with LIBRARY_FAMILY+LANGUAGE granularity; added ECOSYSTEM row (2.0.41)"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/library_changes.bejson",
+      "2026-07-18",
+      "Rebuilt changelog entity (this file) - now tracks LANGUAGE per entry"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/families.bejson",
+      "2026-07-18",
+      "New entity: registry of every family x language combo and whether it has an owned errors file"
+    ],
+    [
+      "Core_Nesting",
+      "PY",
+      "lib_bejson_CoreNesting_bejson_errors.py",
+      "2026-07-18",
+      "New family error registry (v1.0.0): 130-139"
+    ],
+    [
+      "Core_Nesting",
+      "PY",
+      "lib_bejson_CoreNesting_bejson_core_nesting.py",
+      "2026-07-18",
+      "v0.4.1: E_NESTING_* imported from new family errors file instead of local def"
+    ],
+    [
+      "Core_Nesting",
+      "PY",
+      "lib_bejson_CoreNesting_bejson_nesting_query.py",
+      "2026-07-18",
+      "v0.1.1: E_NESTING_QUERY_* imported from new family errors file instead of local def"
+    ],
+    [
+      "Core_Nesting",
+      "JS",
+      "lib_bejson_CoreNesting_bejson_errors.js",
+      "2026-07-18",
+      "New family error registry (v1.0.0): 130-139"
+    ],
+    [
+      "Core_Nesting",
+      "JS",
+      "lib_bejson_CoreNesting_bejson_core_nesting.js",
+      "2026-07-18",
+      "v0.4.1: NESTING_ERRORS required from new family errors file instead of local const"
+    ],
+    [
+      "Core_Nesting",
+      "JS",
+      "lib_bejson_CoreNesting_bejson_nesting_query.js",
+      "2026-07-18",
+      "v0.1.1: E_NESTING_QUERY_* required from new family errors file instead of local const"
+    ],
+    [
+      "Core_Nesting",
+      "TS",
+      "lib_bejson_CoreNesting_bejson_errors.ts",
+      "2026-07-18",
+      "New family error registry (v1.0.0): 130-139"
+    ],
+    [
+      "Core_Nesting",
+      "TS",
+      "lib_bejson_CoreNesting_bejson_core_nesting.ts",
+      "2026-07-18",
+      "v0.4.1: NESTING_ERRORS imported from new family errors file instead of local const"
+    ],
+    [
+      "Core_Nesting",
+      "TS",
+      "lib_bejson_CoreNesting_bejson_nesting_query.ts",
+      "2026-07-18",
+      "v0.1.1: NESTING_QUERY_ERRORS imported from new family errors file instead of local const"
+    ],
+    [
+      "Core_Nesting",
+      "SH",
+      "lib_bejson_CoreNesting_bejson_errors.sh",
+      "2026-07-18",
+      "New family error registry (v1.0.0): 130-139"
+    ],
+    [
+      "Core_Nesting",
+      "SH",
+      "lib_bejson_CoreNesting_bejson_core_nesting.sh",
+      "2026-07-18",
+      "v0.4.1: sources new family errors file instead of Core's"
+    ],
+    [
+      "Core_Nesting",
+      "SH",
+      "lib_bejson_CoreNesting_bejson_nesting_query.sh",
+      "2026-07-18",
+      "v0.1.1: sources new family errors file instead of Core's"
+    ],
+    [
+      "Cognition",
+      "PY",
+      "lib_bejson_Cognition_bejson_errors.py",
+      "2026-07-18",
+      "New family error registry (v1.0.0): 270-275, 403 (SANDBOX_VIOLATION - flagged as out-of-range, kept as-is for wire compatibility)"
+    ],
+    [
+      "Cognition",
+      "PY",
+      "lib_bejson_Cognition_bejson_cognition.py",
+      "2026-07-18",
+      "v2.1.2: E_COGNITION_* imported from new family errors file instead of local def"
+    ],
+    [
+      "Core",
+      "PY",
+      "lib_bejson_Core_bejson_errors.py",
+      "2026-07-18",
+      "v2.4.0: removed Core_Nesting (130-159) and Cognition (270-289) ranges, now owned by their own families"
+    ],
+    [
+      "Core",
+      "JS",
+      "lib_bejson_Core_bejson_errors.js",
+      "2026-07-18",
+      "v2.3.0: removed Core_Nesting (130-159) range (moved) and Cognition (270-275) range (deleted as dead code - no Lib_JS/Cognition family exists)"
+    ],
+    [
+      "Core",
+      "TS",
+      "lib_bejson_Core_bejson_types.ts",
+      "2026-07-18",
+      "v2.4.0: removed CORE_NESTING_CODES block, now owned by Core_Nesting family"
+    ],
+    [
+      "Core",
+      "SH",
+      "lib_bejson_Core_bejson_errors.sh",
+      "2026-07-18",
+      "v1.4.0: removed Core_Nesting (130-159) range, now owned by Core_Nesting family"
+    ],
+    [
+      "HTML",
+      "PY",
+      "lib_bejson_HTML_bejson_diagram_validator.py",
+      "2026-07-18",
+      "v1.0.1: removed dead E_DIAGRAM_RELATIONAL_ERROR/E_DIAGRAM_INVALID_ANCHOR constants (verified unreferenced anywhere in the codebase)"
+    ],
+    [
+      "AI",
+      "PY",
+      "lib_bejson_AI_bejson_errors.py",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "CMS",
+      "PY",
+      "lib_bejson_CMS_bejson_errors.py",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "Chunker",
+      "PY",
+      "lib_bejson_Chunker_bejson_errors.py",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "Gaming",
+      "PY",
+      "lib_bejson_Gaming_bejson_errors.py",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "HTML",
+      "PY",
+      "lib_bejson_HTML_bejson_errors.py",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "System",
+      "PY",
+      "lib_bejson_System_bejson_errors.py",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "Utility",
+      "PY",
+      "lib_bejson_Utility_bejson_errors.py",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "Gaming",
+      "JS",
+      "lib_bejson_Gaming_bejson_errors.js",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "HTML",
+      "JS",
+      "lib_bejson_HTML_bejson_errors.js",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "Utility",
+      "JS",
+      "lib_bejson_Utility_bejson_errors.js",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "Gaming",
+      "TS",
+      "lib_bejson_Gaming_bejson_errors.ts",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "Utility",
+      "TS",
+      "lib_bejson_Utility_bejson_errors.ts",
+      "2026-07-18",
+      "New skeleton family error registry (v1.0.0), no codes allocated yet"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/metadata.bejson",
+      "2026-07-18",
+      "Redesigned as EAV-style (RECORD_TYPE/KEY/VALUE) to hold both per-family versions AND governance rules (Core language-parity requirement, MFDB-is-part-of-Core), per Elton's clarification"
+    ],
+    [
+      "Core",
+      "PY",
+      "lib_bejson_Core_bejson_core.py",
+      "2026-07-21",
+      "v2.0.4: added BEJSON acronym clarification (BOEHNEN ELTON JSON) to header per Elton's direct order"
+    ],
+    [
+      "Core",
+      "JS",
+      "lib_bejson_Core_bejson_core.js",
+      "2026-07-21",
+      "v2.0.4: added BEJSON acronym clarification (BOEHNEN ELTON JSON) to header per Elton's direct order"
+    ],
+    [
+      "Core",
+      "TS",
+      "lib_bejson_Core_bejson_core.ts",
+      "2026-07-21",
+      "v2.1.2: added BEJSON acronym clarification (BOEHNEN ELTON JSON) to header per Elton's direct order"
+    ],
+    [
+      "Core",
+      "SH",
+      "lib_bejson_Core_bejson_core.sh",
+      "2026-07-21",
+      "v2.0.4: added BEJSON acronym clarification (BOEHNEN ELTON JSON) to header per Elton's direct order"
+    ],
+    [
+      "System",
+      "PY",
+      "lib_bejson_System_be_pms.py",
+      "2026-07-21",
+      "Deprecated and moved to Lib_PY/System/Deprecated/. Project management system being rebuilt from scratch; do not use."
+    ],
+    [
+      "System",
+      "PY",
+      "lib_bejson_System_be_project_service.py",
+      "2026-07-21",
+      "Deprecated and moved to Lib_PY/System/Deprecated/. Project management system being rebuilt from scratch; do not use."
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/metadata.bejson",
+      "2026-07-21",
+      "Schema v3.1: added BEJSON_ACRONYM_DEFINITION rule (BOEHNEN ELTON JSON) and PMS_DEPRECATED rule; bumped ECOSYSTEM version to 2.0.42"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/104a.mfdb.bejson",
+      "2026-07-21",
+      "Manifest v1.33/Schema 2.2.0: bumped Metadata and Library_Changes record_count to reflect this session's additions"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/dependencies.bejson",
+      "2026-07-21",
+      "New entity (Task 1 of MFDB expansion plan): 167 import/require/source edges scanned across Lib_PY, Lib_JS, Lib_TS, Lib_SH"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/104a.mfdb.bejson",
+      "2026-07-21",
+      "Manifest v1.34/Schema 2.3.0: registered Dependencies entity, record_count 167"
+    ],
+    [
+      "Core",
+      "PY",
+      "lib_bejson_Core_bejson_chunking.py",
+      "2026-07-21",
+      "MFDB-132 self-identification fix: create_mfdb132_package now overwrites Schema_Name->'MFDB-132' and Records_Type->['MFDB-132'] instead of inheriting Chunked-104a identity"
+    ],
+    [
+      "Core",
+      "PY",
+      "lib_bejson_Core_mfdb_validator.py",
+      "2026-07-21",
+      "is_mfdb132_package/validate_mfdb132_package now check for Schema_Name=='MFDB-132' and Records_Type==['MFDB-132'] instead of the old Chunked-104a values"
+    ],
+    [
+      "Core",
+      "TS",
+      "lib_bejson_Core_bejson_chunking.ts",
+      "2026-07-21",
+      "MFDB-132 self-identification fix: same Schema_Name/Records_Type overwrite as PY"
+    ],
+    [
+      "Core",
+      "TS",
+      "lib_bejson_Core_mfdb_validators.ts",
+      "2026-07-21",
+      "isMfdb132Package/validateMfdb132Package updated to check MFDB-132 identity instead of Chunked-104a"
+    ],
+    [
+      "Core",
+      "SH",
+      "lib_bejson_Core_bejson_chunking.sh",
+      "2026-07-21",
+      "MFDB-132 self-identification fix: same Schema_Name/Records_Type overwrite as PY (via jq)"
+    ],
+    [
+      "Core",
+      "SH",
+      "lib_bejson_Core_mfdb_validator.sh",
+      "2026-07-21",
+      "mfdb_validator_is_mfdb132_package/validate_mfdb132_package updated to check MFDB-132 identity instead of Chunked-104a"
+    ],
+    [
+      "Core",
+      "JS",
+      "lib_bejson_Core_bejson_chunking.js",
+      "2026-07-21",
+      "MFDB-132 self-identification fix: same Schema_Name/Records_Type overwrite as PY"
+    ],
+    [
+      "Core",
+      "JS",
+      "lib_bejson_Core_mfdb_validator.js",
+      "2026-07-21",
+      "mfdb_validator_is_mfdb132_package/validate_mfdb132_package updated to check MFDB-132 identity instead of Chunked-104a"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/templates.bejson",
+      "2026-07-22",
+      "New entity (Task 2 of MFDB expansion plan): 6 rows - PY/JS-TS/SH file header templates, new-family errors skeleton (PY), MFDB entity skeleton, MFDB manifest skeleton"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/104a.mfdb.bejson",
+      "2026-07-22",
+      "Manifest v1.36/Schema 2.4.0: registered Templates entity, record_count 6"
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/data/schemas.bejson",
+      "2026-07-22",
+      "New entity (Task 3 of MFDB expansion plan): 9 rows inventorying every SCHEMA_* constant found across Lib_PY. Resolved SCHEMA_MFDB_ENTITY_v5/SCHEMA_MFDB_ENTITY as a true duplicate (byte-identical fields, diffed) - merged to one row. Resolved SCHEMA_MODEL_REGISTRY as a name collision, not a duplicate (Core=Gemini AI_Model schema, AI=OpenRouterModelRegistry schema, genuinely different fields/Records_Type) - kept as two rows, flagged the shared constant name for a future rename pass."
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/104a.mfdb.bejson",
+      "2026-07-22",
+      "Manifest v1.37/Schema 2.5.0: registered Schemas entity, record_count 9"
+    ],
+    [
+      "Utility",
+      "2.3.2",
+      "Lib_PY/Utility/lib_bejson_Utility_bejson_utility.py",
+      "2026-07-22",
+      "Library bug fix (exemption invoked): removed byte-identical duplicate SCHEMA_MFDB_ENTITY - now imports SCHEMA_MFDB_ENTITY_v5 from lib_bejson_Core_bejson_schema.py under the local alias. Verified: import succeeds, same object identity as Core's schema, bejson_utility_create_mfdb_version() tested end-to-end unchanged. Version 2.3.2 -> 2.3.3. Report: BEJSON/Reports/FIX_SCHEMA_MFDB_ENTITY_DUPLICATE.md. Merged forward into the pkg7 lineage (this fix was made in a branch that also had different plan-doc edits merged from pkg7)."
+    ],
+    [
+      "AI",
+      "PY",
+      "lib_bejson_AI_bejson_interactions.py",
+      "2026-07-24",
+      "New file. Implements the Interactions API (POST /v1beta/interactions) via GeminiInteractionsAPI: create_interaction() raw wrapper, chat() full function-call loop, tool_direct() single-shot SI-injection path \u2014 1:1 mirrors of the confirmed-working client call chain documented in GEMINI_INTERACTIONS_INCIDENT_REPORT.md. Reuses GeminiKeyRegistry/GeminiModelRegistry from lib_bejson_AI_bejson_gemini.py rather than duplicating registry logic. Includes build_text_attachment/build_image_attachment/build_document_attachment/build_attachment helpers (text->no base64, image/document->base64+mime_type; 'inline_data' is deliberately not used, see Incident 5). Uses AI family error codes E_AI_NO_API_KEYS/E_AI_INTERACTIONS_HTTP_ERROR/E_AI_INTERACTIONS_TIMEOUT. Verified end-to-end: chat() two-round function-call exchange, tool_direct() system-instruction injection, and build_attachment() text-file dispatch all tested and passing before this changelog entry was written."
+    ],
+    [
+      "MFDB",
+      "N/A",
+      "BEJSON/MFDB/104a.mfdb.bejson",
+      "2026-07-24",
+      "Manifest v1.38/Schema 2.5.1: registered GeminiModelRegistry entity (Lib_PY/AI/gemini_model_registry.104a.bejson, 12 rows, PK model_id). File existed on disk but was never registered until this entry -- change log had gone stale after the 2026-07-22 Schemas-entity bump and was never updated for this registration. Filed retroactively during the 2026-08-15 registry-drift audit/cleanup pass."
+    ],
+    [
+      "MD",
+      "PY",
+      "lib_bejson_MD_md_errors.py",
+      "2026-08-15",
+      "Registry-drift cleanup: renumbered E_MD_* codes 70-79 -> 90-109 range (actual codes now 90-99) to resolve a collision with Core's 70-72 (E_MFDB_CORE_ARCHIVE_ERROR/MOUNT_CONFLICT/CREATE_FAILED). Core is priority per Elton Boehnen, 2026-08-15. Constant names unchanged, only numeric values moved. Version 1.1.0 -> 1.2.0."
+    ],
+    [
+      "ALL",
+      "ALL",
+      "batch:198 files (Lib_PY/Lib_JS/Lib_TS/Lib_SH, all lib_bejson_* headers)",
+      "2026-08-15",
+      "LOW-2 remediation: added 'Release_Version: 300' to every lib_bejson_* file header (198 files, all 4 language families) per Policy 2026-08-14/context.bejson mandate. Additionally defined RELEASE_VERSION as a real code constant (int, value 300) in the four Core-family Core BEJSON files only -- lib_bejson_Core_bejson_core.py/.js/.ts/.sh -- per the 'Only the Core BEJSON file should define it as a variable' clause. JS/TS variants also export RELEASE_VERSION from their public module surface. All other library files carry Release_Version as a header-comment field only, no code variable. Verified: ast.parse on all 133 .py files, node -c on all 41 .js files, bash -n on all 27 .sh files -- zero syntax failures post-patch."
+    ],
+    [
+      "Core",
+      "N/A",
+      "context.bejson",
+      "2026-08-15",
+      "LOW-1 remediation: fixed typos in the Release_Versioning entry text ('to o declare' -> 'to declare', stray 'IAll' -> 'All', 'Core A BEJSON' -> 'Core BEJSON'). Content meaning unchanged, wording now matches the intended policy statement. Valid JSON verified post-edit."
+    ]
+  ]
+}

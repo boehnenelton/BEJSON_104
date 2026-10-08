@@ -1,0 +1,716 @@
+/**
+ * Library:         lib_bejson_Core_bejson_chunking.js
+ * Family:          Core
+ * Module Purpose:  Chunked-104a project packaging (directory <-> one 104a document).
+ * Architecture:    Chunked-104a packaging: a directory tree stored as one BEJSON 104a document, and MFDB-132, which packs an entire MFDB (manifest + entity files) into one Chunked-104a document. Neither is BEJSON 104db.
+ * Format_Scope:    Chunked-104a and MFDB-132 packaging (NOT 104db)
+ * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
+ *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
+ *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
+ * Version:         1.8.4
+ * Release_Version: 300
+ * Date:            2026-10-02
+ * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
+ * Format_Creator:  Elton Boehnen
+ * RELATIONAL_ID:   73921105-8f08-4310-9047-7314c9c1c4f5
+ */
+
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const {
+  mfdb_validator_is_mfdb132_package,
+  mfdb_validator_validate_mfdb132_package,
+  mfdb_validator_detect_mfdb_in_chunk,
+} = require("./lib_bejson_Core_mfdb_validator.js");
+
+const DEFAULT_EXTENSIONS = [
+  ".py", ".js", ".ts", ".html", ".css", ".md", ".json",
+  ".sh", ".txt", ".bejson", ".tsx", ".jsx",
+];
+
+const DEFAULT_EXCLUDES = [
+  ".git", "__pycache__", "node_modules", "lib", "output",
+  ".mfdb_lock", "dist", "build",
+];
+
+const CHUNKED_104_FIELDS = [
+  { name: "File_Name", type: "string" },
+  { name: "File_Extension", type: "string" },
+  { name: "File_Content", type: "string" },
+  { name: "File_Version", type: "string" },
+  { name: "File_Hash", type: "string" },
+  { name: "Relative_Path", type: "string" },
+  { name: "Is_Binary", type: "boolean" },
+  { name: "Is_Mounted", type: "boolean" },
+];
+
+const MFDB_MANIFEST_FILENAME = "104a.mfdb.bejson";
+// Fixed packaging-format identifier for the MFDB-132 spec itself — NOT the
+// database's own MFDB_Version (which lives inside the wrapped manifest and
+// increments normally). This constant intentionally never changes; "1.32" is
+// what makes it "MFDB-132." Do not bump this to track DB schema changes.
+const MFDB_CHUNK_SCHEMA_VERSION = "1.32";
+
+/**
+ * ISO-8601 UTC timestamp for chunk-document headers.
+ */
+function bejsonCoreChunkingGetTimestamp() {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+/**
+ * True if a file should be treated as binary (stored base64) when chunking.
+ */
+function bejsonCoreChunkingIsBinary(filePath) {
+  // Matches CLI_Chunker.py: attempt strict UTF-8 decode of first 1024 bytes.
+  try {
+    const fd = fs.openSync(filePath, "r");
+    const buf = Buffer.alloc(1024);
+    const bytesRead = fs.readSync(fd, buf, 0, 1024, 0);
+    fs.closeSync(fd);
+    const slice = buf.subarray(0, bytesRead);
+    new TextDecoder("utf-8", { fatal: true }).decode(slice);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * SHA-256 hex of raw bytes: the File_Hash stored per row. Change/corruption detection, not a signature.
+ */
+// SHA-256 checksum for corruption detection (not a security signature).
+function bejsonCoreChunkingHashFileBytes(rawBytes) {
+  return crypto.createHash("sha256").update(rawBytes).digest("hex");
+}
+
+/**
+ * Recursively lists files under root, skipping excluded directory names.
+ */
+function walkDir(root, excludeDirs) {
+  const results = [];
+  const stack = [root];
+  while (stack.length) {
+    const current = stack.pop();
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        if (!excludeDirs.includes(entry.name)) {
+          stack.push(path.join(current, entry.name));
+        }
+      } else if (entry.isFile()) {
+        results.push(path.join(current, entry.name));
+      }
+    }
+  }
+  return results;
+}
+
+/**
+ * Next Package_Version string from a prior chunk document. Tracks chunk releases; unrelated to Format_Version.
+ */
+function bejsonCoreChunkingBumpPackageVersion(priorDoc) {
+  // Package_Version tracking, mirroring the project schema tracker's
+  // Project_Version / Package_Version split -- see PY counterpart docstring
+  // for full rationale. Numeric-string bump; non-numeric/missing resets to "1".
+  if (!priorDoc) return "1";
+  const n = parseInt(priorDoc.Package_Version, 10);
+  return Number.isNaN(n) ? "1" : String(n + 1);
+}
+
+/**
+ * Packs a directory into one Chunked-104a document (one row per file: name, extension, relative path, content, hash, binary flag). Chunked-104a = a directory stored in ONE BEJSON 104a document (one row per file). Not 104db, not MFDB.
+ */
+function bejsonCoreChunkingCreateChunked104(
+  targetDir,
+  version = "latest",
+  extensions = null,
+  excludeDirs = null,
+  packageVersion = null
+) {
+  const targetPath = path.resolve(targetDir);
+  const exts = extensions !== null ? extensions : DEFAULT_EXTENSIONS;
+  const excl = excludeDirs !== null ? excludeDirs : DEFAULT_EXCLUDES;
+
+  const values = [];
+  const allFiles = walkDir(targetPath, excl);
+
+  for (const filePath of allFiles) {
+    const ext = path.extname(filePath).toLowerCase();
+    if (!exts.includes(ext)) continue;
+    try {
+      const relPath = path.relative(targetPath, filePath);
+      const isBin = bejsonCoreChunkingIsBinary(filePath);
+      const rawBytes = fs.readFileSync(filePath);
+      const content = isBin ? rawBytes.toString("base64") : rawBytes.toString("utf-8");
+      const fileHash = bejsonCoreChunkingHashFileBytes(rawBytes);
+
+      values.push([
+        path.basename(filePath),
+        path.extname(filePath),
+        content,
+        version,
+        fileHash,
+        relPath,
+        isBin,
+        false,
+      ]);
+    } catch {
+      continue;
+    }
+  }
+
+  return {
+    Format: "BEJSON",
+    Format_Version: "104a",
+    Format_Creator: "Elton Boehnen",
+    Schema_Name: "Chunked-104a",
+    Schema_Version: "1.0.1",
+    Schema_Description: "Standard schema for chunking single projects.",
+    "Chunk_Date": bejsonCoreChunkingGetTimestamp().slice(0, 10),
+    // Session-level mount flag (real boolean); distinct from the per-row Is_Mounted field in Fields[].
+    Session_Is_Mounted: false,
+    Mount_Path: "",
+    Package_Version: packageVersion || "1",
+    Records_Type: ["Chunked"],
+    Fields: CHUNKED_104_FIELDS,
+    Values: values,
+  };
+}
+
+/**
+ * Restores a Chunked-104a document's files into outputDir with a boundary check on every relative path. Returns the file count.
+ */
+function bejsonCoreChunkingUnchunkChunked104(doc, outputDir) {
+  const fields = doc.Fields || CHUNKED_104_FIELDS;
+  const fm = {};
+  fields.forEach((f, i) => (fm[f.name] = i));
+
+  const outRoot = path.resolve(outputDir);
+  let count = 0;
+
+  for (const row of doc.Values || []) {
+    const relPath = row[fm["Relative_Path"]];
+    const isBinary = row[fm["Is_Binary"]];
+    const content = row[fm["File_Content"]];
+    if (!relPath || content === null || content === undefined) continue;
+
+    const targetFile = path.join(outRoot, relPath);
+    fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+    if (isBinary) {
+      fs.writeFileSync(targetFile, Buffer.from(content, "base64"));
+    } else {
+      fs.writeFileSync(targetFile, content, { encoding: "utf-8" });
+    }
+    count += 1;
+  }
+
+  return count;
+}
+
+// ── MFDB 1.32 packaging extension ──────────────────────────────────────────
+// 1.31 stays fully valid and unchanged (manifest + entity files, optionally
+// zipped). 1.32 adds a second, optional container: the entire MFDB directory
+// (manifest + every entity file) chunked into ONE Chunked-104a document. This
+// is purely additive — nothing about the 1.31 disk layout or validation rules
+// changes.
+
+/**
+ * MFDB-132 packaging: reads an MFDB directory (104a manifest 104a.mfdb.bejson + 104 entity files) and stores all of it in ONE Chunked-104a document. A packaging wrapper around an ordinary MFDB; not a new format and not 104db.
+ */
+function bejsonCoreChunkingCreateMfdb132Package(
+  mfdbRootDir,
+  dbName,
+  extensions = null,
+  excludeDirs = null,
+  packageVersion = null,
+  priorPackageDoc = null
+) {
+  const rootPath = path.resolve(mfdbRootDir);
+  const manifestPath = path.join(rootPath, MFDB_MANIFEST_FILENAME);
+  if (!fs.existsSync(manifestPath) || !fs.statSync(manifestPath).isFile()) {
+    throw new Error(
+      `No ${MFDB_MANIFEST_FILENAME} found at root of ${rootPath} — cannot ` +
+        `package a directory that isn't a valid MFDB layout.`
+    );
+  }
+
+  const resolvedPackageVersion =
+    packageVersion || bejsonCoreChunkingBumpPackageVersion(priorPackageDoc);
+
+  const doc = bejsonCoreChunkingCreateChunked104(
+    rootPath,
+    MFDB_CHUNK_SCHEMA_VERSION,
+    extensions !== null ? extensions : DEFAULT_EXTENSIONS,
+    excludeDirs,
+    resolvedPackageVersion
+  );
+
+  // Overwrite the inherited Chunked-104a schema identity — see the PY
+  // counterpart for rationale (Package_Format alone isn't authoritative for
+  // discovery; Schema_Name/Records_Type must say MFDB-132 too).
+  doc.Schema_Name = "MFDB-132";
+  doc.Records_Type = ["MFDB-132"];
+  doc.MFDB_Version = MFDB_CHUNK_SCHEMA_VERSION;
+  doc.DB_Name = dbName;
+  doc.Package_Format = "MFDB-Chunked-104a";
+  return doc;
+}
+
+/**
+ * True if a Chunked-104a document is a packaged MFDB-132.
+ */
+function bejsonCoreChunkingIsMfdb132Package(doc) {
+  // Thin wrapper — validation logic lives in
+  // lib_bejson_Core_mfdb_validator.mfdb_validator_is_mfdb132_package().
+  return mfdb_validator_is_mfdb132_package(doc);
+}
+
+/**
+ * Level-1 validation of an MFDB-132 package (delegates to mfdb_validator).
+ */
+function bejsonCoreChunkingValidateMfdb132Package(doc) {
+  // Thin wrapper — validation logic lives in
+  // lib_bejson_Core_mfdb_validator.mfdb_validator_validate_mfdb132_package().
+  return mfdb_validator_validate_mfdb132_package(doc);
+}
+
+/**
+ * Unpacks an MFDB-132 package into a normal MFDB directory (104a manifest + 104 entity files).
+ */
+function bejsonCoreChunkingUnchunkMfdb132Package(doc, outputDir) {
+  const validation = bejsonCoreChunkingValidateMfdb132Package(doc);
+  const count = bejsonCoreChunkingUnchunkChunked104(doc, outputDir);
+
+  const outRoot = path.resolve(outputDir);
+  const manifestRestored = fs.existsSync(path.join(outRoot, MFDB_MANIFEST_FILENAME));
+  if (!manifestRestored) {
+    validation.valid = false;
+    validation.errors.push(
+      `Manifest ${MFDB_MANIFEST_FILENAME} was not found on disk after unchunking.`
+    );
+  }
+
+  return [count, validation];
+}
+
+// ── MFDB-in-chunk deep detection (validator extension) ──────────────────────
+// Thin wrapper over lib_bejson_Core_mfdb_validator.js, exposed through the chunking library.
+
+/**
+ * Scans any Chunked-104a document for an embedded valid MFDB (delegates to mfdb_validator).
+ */
+function bejsonCoreChunkingDetectMfdbInChunk(doc) {
+  // Thin wrapper — validation logic lives in
+  // lib_bejson_Core_mfdb_validator.mfdb_validator_detect_mfdb_in_chunk().
+  return mfdb_validator_detect_mfdb_in_chunk(doc);
+}
+
+// ── MFDB 1.32 session-based mount ─────────────────────────────────────────────
+// Mirrors MFDBArchive (131) exactly, substituting unchunk/rechunk for
+// unzip/rezip. Node.js only — uses fs and crypto. Lock file is .mfdb132_lock.
+// Is_Mounted and Mount_Path top-level headers on the chunk doc are live
+// mount-state markers.
+
+const LOCK_FILE_132 = ".mfdb132_lock";
+
+/**
+ * SHA-256 of a file on disk, for chunk integrity checks.
+ */
+function _calculateChunkHash(filePath) {
+  const data = fs.readFileSync(filePath);
+  return crypto.createHash("sha256").update(data).digest("hex");
+}
+
+/**
+ * Writes Session_Is_Mounted and Mount_Path headers into a chunk document on disk.
+ */
+function _setChunkDocHeaders(chunkDocPath, isMounted, mountPath) {
+  try {
+    const doc = JSON.parse(fs.readFileSync(chunkDocPath, "utf8"));
+    doc["Session_Is_Mounted"] = !!isMounted;
+    delete doc["Is_Mounted"]; // Session_Is_Mounted is the only document-level mount flag
+    doc["Mount_Path"] = mountPath;
+    fs.writeFileSync(chunkDocPath, JSON.stringify(doc, null, 2), "utf8");
+  } catch (e) {
+    console.warn(`[MFDB132] Could not update chunk doc headers: ${e.message}`);
+  }
+}
+
+class MFDB132Archive {
+  /**
+   * Extracts a chunk document into a workspace, takes a '132' session lock and sets Session_Is_Mounted / Mount_Path. sticky reuses valid extracted files. A packaged MFDB becomes an ordinary MFDB directory.
+   */
+  /**
+   * mount — unchunk an MFDB132 package to a workspace and write a session lock.
+   * sticky=true reuses an existing valid workspace when the chunk doc hash matches.
+   * Returns the absolute path to the restored manifest.
+   */
+  static mount(chunkDocPath, targetDir, { force = false, sticky = true } = {}) {
+    const chunkAbs = path.resolve(chunkDocPath);
+    if (!fs.existsSync(chunkAbs)) {
+      throw new Error(`Chunk doc not found: ${chunkDocPath}`);
+    }
+
+    const lockFile    = path.join(targetDir, LOCK_FILE_132);
+    const manifestOut = path.join(targetDir, MFDB_MANIFEST_FILENAME);
+    const currentHash = _calculateChunkHash(chunkAbs);
+
+    // Sticky reuse
+    if (sticky && fs.existsSync(lockFile) && fs.existsSync(manifestOut)) {
+      try {
+        const lock = JSON.parse(fs.readFileSync(lockFile, "utf8"));
+        if (lock.original_hash === currentHash) {
+          const { mfdb_validator_validate_database } = require("./lib_bejson_Core_mfdb_validator.js");
+          if (mfdb_validator_validate_database(manifestOut)) {
+            return path.resolve(manifestOut);
+          }
+        }
+      } catch (_) { /* fall through to full re-unchunk */ }
+    }
+
+    // Ownership check
+    if (fs.existsSync(lockFile) && !force) {
+      const lock = JSON.parse(fs.readFileSync(lockFile, "utf8"));
+      if (lock.pid !== process.pid) {
+        throw new Error(
+          `Workspace ${targetDir} is locked by PID ${lock.pid}. Pass force=true to override.`
+        );
+      }
+    }
+
+    // Clear workspace, unchunk
+    if (fs.existsSync(targetDir)) {
+      fs.rmSync(targetDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const doc   = JSON.parse(fs.readFileSync(chunkAbs, "utf8"));
+    const count = bejsonCoreChunkingUnchunkChunked104(doc, targetDir);
+    if (count === 0) {
+      fs.rmSync(targetDir, { recursive: true, force: true });
+      throw new Error("Unchunk produced zero files — chunk doc may be empty.");
+    }
+    if (!fs.existsSync(manifestOut)) {
+      fs.rmSync(targetDir, { recursive: true, force: true });
+      throw new Error("Invalid MFDB132 package: 104a.mfdb.bejson missing after unchunk.");
+    }
+
+    // Write session lock
+    const lockData = {
+      pid:             process.pid,
+      mounted_at:      new Date().toISOString(),
+      original_hash:   currentHash,
+      chunk_doc_path:  chunkAbs,
+      workspace_dir:   path.resolve(targetDir),
+    };
+    fs.writeFileSync(lockFile, JSON.stringify(lockData, null, 2), "utf8");
+
+    // Activate Is_Mounted / Mount_Path headers
+    _setChunkDocHeaders(chunkAbs, true, path.resolve(targetDir));
+
+    return path.resolve(manifestOut);
+  }
+
+  /**
+   * Re-chunks the mounted workspace into the chunk document (atomic); validate refuses to write on failure.
+   */
+  /**
+   * commit — re-chunk the workspace back into an MFDB132 package atomically.
+   * Runs full MFDB validation as a pre-write gate before touching disk.
+   */
+  static commit(mountDir, outputPath = null, validate = true) {
+    const lockFile    = path.join(mountDir, LOCK_FILE_132);
+    const manifestOut = path.join(mountDir, MFDB_MANIFEST_FILENAME);
+
+    if (!fs.existsSync(lockFile)) {
+      throw new Error(`No active 132 mount session in ${mountDir}`);
+    }
+    const lockData = JSON.parse(fs.readFileSync(lockFile, "utf8"));
+
+    // Pre-write validation gate
+    if (validate) {
+      if (!fs.existsSync(manifestOut)) {
+        throw new Error("Commit rejected: manifest missing in workspace.");
+      }
+      const { mfdb_validator_validate_database } = require("./lib_bejson_Core_mfdb_validator.js");
+      try { mfdb_validator_validate_database(manifestOut); }
+      catch (e) { throw new Error(`Commit rejected: validation failed — ${e.message}`); }
+    }
+
+    const destPath = outputPath || lockData.chunk_doc_path;
+    if (!destPath) throw new Error("Destination chunk doc path unknown.");
+
+    const manifestDoc = JSON.parse(fs.readFileSync(manifestOut, "utf8"));
+    const dbName      = manifestDoc.DB_Name || "";
+
+    // Rechunk to temp, atomic swap
+    const tempChunk = destPath + ".tmp." + Date.now();
+    try {
+      const newDoc = bejsonCoreChunkingCreateMfdb132Package(mountDir, dbName);
+      fs.writeFileSync(tempChunk, JSON.stringify(newDoc, null, 2), "utf8");
+      fs.renameSync(tempChunk, destPath);
+    } catch (e) {
+      if (fs.existsSync(tempChunk)) fs.unlinkSync(tempChunk);
+      throw new Error(`Commit failed during rechunk: ${e.message}`);
+    }
+
+    // Update lock hash; keep Is_Mounted=True until explicit unmount
+    const newHash = _calculateChunkHash(destPath);
+    lockData.original_hash = newHash;
+    fs.writeFileSync(lockFile, JSON.stringify(lockData, null, 2), "utf8");
+    _setChunkDocHeaders(destPath, true, path.resolve(mountDir));
+
+    return destPath;
+  }
+
+  /**
+   * Re-extracts one file from the chunk document into the mounted workspace (recovery).
+   */
+  /**
+   * resurrect_file — re-unchunk a single file from the chunk doc into the workspace.
+   * Used for recovery when an entity file is missing or corrupted.
+   */
+  static resurrect_file(mountDir, relativePath) {
+    const lockFile = path.join(mountDir, LOCK_FILE_132);
+    if (!fs.existsSync(lockFile)) return false;
+
+    const lockData     = JSON.parse(fs.readFileSync(lockFile, "utf8"));
+    const chunkDocPath = lockData.chunk_doc_path;
+    if (!chunkDocPath || !fs.existsSync(chunkDocPath)) return false;
+
+    try {
+      const doc = JSON.parse(fs.readFileSync(chunkDocPath, "utf8"));
+      const fields = doc.Fields || CHUNKED_104_FIELDS;
+      const fm = {};
+      fields.forEach((f, i) => { fm[f.name] = i; });
+      const targetRel = path.normalize(relativePath);
+
+      for (const row of (doc.Values || [])) {
+        if (path.normalize(row[fm["Relative_Path"]]) === targetRel) {
+          const targetFile = path.join(mountDir, row[fm["Relative_Path"]]);
+          fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+          const isBinary = row[fm["Is_Binary"]];
+          const content  = row[fm["File_Content"]];
+          if (isBinary) {
+            fs.writeFileSync(targetFile, Buffer.from(content, "base64"));
+          } else {
+            fs.writeFileSync(targetFile, content, "utf8");
+          }
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn(`[MFDB132] resurrect_file failed for ${relativePath}: ${e.message}`);
+    }
+    return false;
+  }
+
+  /**
+   * Releases the session lock, clears Session_Is_Mounted / Mount_Path; cleanup removes the workspace.
+   */
+  /**
+   * unmount — release the 132 session lock and clear Is_Mounted / Mount_Path
+   * headers on the chunk doc. Optionally deletes the workspace directory.
+   */
+  static unmount(mountDir, cleanup = true) {
+    const lockFile = path.join(mountDir, LOCK_FILE_132);
+    if (fs.existsSync(lockFile)) {
+      try {
+        const lockData = JSON.parse(fs.readFileSync(lockFile, "utf8"));
+        const cdp = lockData.chunk_doc_path;
+        if (cdp && fs.existsSync(cdp)) _setChunkDocHeaders(cdp, false, "");
+      } catch (_) {}
+      fs.unlinkSync(lockFile);
+    }
+    if (cleanup && fs.existsSync(mountDir)) {
+      fs.rmSync(mountDir, { recursive: true, force: true });
+    }
+  }
+}
+
+// ── MFDB rolling multi-version schema (unify layer) ─────────────────────────
+// Everything above (bejsonCoreChunking*) is the Chunked-104a / MFDB-132 flat
+// one-shot schema. Everything below (bejsonCoreChunkingMfdb*) is a distinct
+// function set, same file/family, for mfdb_chunker.py's rolling
+// multi-version layout (manifest + entity split, one entity file holds ALL
+// versions as rows). See the PY sibling file's comment block for the full
+// description; the function set is identical across languages.
+
+const BEJSON_CORE_CHUNKING_MFDB_SCHEMA_MANIFEST = "mfdb_manifest";
+const BEJSON_CORE_CHUNKING_MFDB_SCHEMA_ENTITY = "mfdb_entity";
+const BEJSON_CORE_CHUNKING_MFDB_SCHEMA_ENTITY_LEGACY = "mfdb_entity_legacy";
+const BEJSON_CORE_CHUNKING_MFDB_SCHEMA_CHUNKED_104A = "chunked_104a";
+const BEJSON_CORE_CHUNKING_MFDB_SCHEMA_UNKNOWN = "unknown";
+
+const _MFDB_ENTITY_FIELD_NAMES = new Set([
+  "version", "File_Name", "File_Extension", "Relative_Path",
+  "File_Content", "File_Hash", "Is_Binary", "Is_Mounted",
+]);
+const _MFDB_ENTITY_LEGACY_FIELD_NAMES = new Set([
+  "version", "file_path", "file_name", "content", "is_binary", "is_base64",
+]);
+const _CHUNKED_104A_FIELD_NAMES = new Set(CHUNKED_104_FIELDS.map((f) => f.name));
+
+/**
+ * True when two Sets contain the same members.
+ */
+function _setsEqual(a, b) {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+
+/**
+ * Field-name -> index map for a chunk document, cached per Fields signature.
+ */
+function bejsonCoreChunkingMfdbGetFieldMap(doc) {
+  const fields = doc.Fields || [];
+  const map = {};
+  fields.forEach((f, i) => { map[f.name] = i; });
+  return map;
+}
+
+/**
+ * Classifies a chunk document's field layout (Chunked-104a file rows, MFDB entity rows, MFDB manifest rows, lowercase variants). Pure structure check.
+ */
+function bejsonCoreChunkingMfdbDetectSchema(doc) {
+  const recordsType = doc.Records_Type;
+  const fieldNames = new Set((doc.Fields || []).map((f) => f.name));
+
+  if ((Array.isArray(recordsType) && recordsType.length === 1 && recordsType[0] === "MFDB-132") ||
+      doc.Schema_Name === "MFDB-132") {
+    return BEJSON_CORE_CHUNKING_MFDB_SCHEMA_CHUNKED_104A;
+  }
+  if (Array.isArray(recordsType) && recordsType.length === 1 && recordsType[0] === "Chunked" &&
+      _setsEqual(fieldNames, _CHUNKED_104A_FIELD_NAMES)) {
+    return BEJSON_CORE_CHUNKING_MFDB_SCHEMA_CHUNKED_104A;
+  }
+  if (_setsEqual(fieldNames, _MFDB_ENTITY_FIELD_NAMES)) {
+    return BEJSON_CORE_CHUNKING_MFDB_SCHEMA_ENTITY;
+  }
+  if (_setsEqual(fieldNames, _MFDB_ENTITY_LEGACY_FIELD_NAMES)) {
+    return BEJSON_CORE_CHUNKING_MFDB_SCHEMA_ENTITY_LEGACY;
+  }
+  if (Array.isArray(recordsType) && recordsType.length === 1 && recordsType[0] === "mfdb" &&
+      fieldNames.has("entity_name") && fieldNames.has("file_path")) {
+    return BEJSON_CORE_CHUNKING_MFDB_SCHEMA_MANIFEST;
+  }
+  return BEJSON_CORE_CHUNKING_MFDB_SCHEMA_UNKNOWN;
+}
+
+/**
+ * Checks the MFDB package version is a known one (1.31, 1.32, 1.38). This is the MFDB package/convention version, not a BEJSON Format_Version.
+ */
+function bejsonCoreChunkingMfdbCheckVersion(doc, knownVersions = ["1.31", "1.32", "1.38"]) {
+  const mfdbVersion = doc.MFDB_Version;
+  if (mfdbVersion === undefined || mfdbVersion === null) return null;
+  if (!knownVersions.includes(String(mfdbVersion))) {
+    return `MFDB_Version '${mfdbVersion}' not in known set [${knownVersions.join(", ")}] -- ` +
+      `proceeding on structural detection anyway, but this is worth a look.`;
+  }
+  return null;
+}
+
+/**
+ * Restores a rolling multi-version MFDB chunk (manifest + entity split, all versions as rows) to a directory; version selects the release.
+ */
+function bejsonCoreChunkingMfdbUnchunk(doc, outputDir, version = null, manifestDir = null) {
+  const schema = bejsonCoreChunkingMfdbDetectSchema(doc);
+  const warning = bejsonCoreChunkingMfdbCheckVersion(doc);
+  const outRoot = path.resolve(outputDir);
+
+  if (schema === BEJSON_CORE_CHUNKING_MFDB_SCHEMA_CHUNKED_104A) {
+    const count = bejsonCoreChunkingUnchunkChunked104(doc, outputDir);
+    return { ok: true, message: `Restored ${count} file(s) from Chunked-104a/MFDB-132 bundle.`,
+      schema, warning, out_dir: outRoot, file_count: count };
+  }
+
+  if (schema === BEJSON_CORE_CHUNKING_MFDB_SCHEMA_MANIFEST) {
+    if (manifestDir === null || !version) {
+      return { ok: false, message: "MFDB manifest requires manifestDir and version.", schema, warning };
+    }
+    const fm = bejsonCoreChunkingMfdbGetFieldMap(doc);
+    const row = (doc.Values || []).find((r) => r[fm.entity_name] === version);
+    if (!row) {
+      return { ok: false, message: `Version '${version}' not found in manifest.`, schema, warning };
+    }
+    const entityPath = path.join(manifestDir, row[fm.file_path]);
+    if (!fs.existsSync(entityPath)) {
+      return { ok: false, message: `Entity file missing: ${entityPath}`, schema, warning };
+    }
+    const entityDoc = JSON.parse(fs.readFileSync(entityPath, "utf-8"));
+    return bejsonCoreChunkingMfdbUnchunk(entityDoc, outputDir, version, null);
+  }
+
+  if (schema === BEJSON_CORE_CHUNKING_MFDB_SCHEMA_ENTITY) {
+    if (!version) {
+      return { ok: false, message: "MFDB entity requires version.", schema, warning };
+    }
+    const fm = bejsonCoreChunkingMfdbGetFieldMap(doc);
+    const rows = (doc.Values || []).filter((r) => r[fm.version] === version);
+    if (rows.length === 0) {
+      return { ok: false, message: `No rows for version '${version}'.`, schema, warning };
+    }
+    fs.mkdirSync(outRoot, { recursive: true });
+    let count = 0;
+    for (const row of rows) {
+      const relPath = row[fm.Relative_Path];
+      if (!relPath) continue;
+      const target = path.join(outRoot, relPath);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      if (row[fm.Is_Binary]) {
+        fs.writeFileSync(target, Buffer.from(row[fm.File_Content] || "", "base64"));
+      } else {
+        fs.writeFileSync(target, row[fm.File_Content] || "", "utf-8");
+      }
+      count += 1;
+    }
+    return { ok: true, message: `Restored ${count} file(s) for version '${version}'.`,
+      schema, warning, out_dir: outRoot, file_count: count };
+  }
+
+  if (schema === BEJSON_CORE_CHUNKING_MFDB_SCHEMA_ENTITY_LEGACY) {
+    return { ok: false, message: "Legacy MFDB entity schema -- no migration path by design. " +
+      "Re-chunk the source project with current tooling first.", schema, warning };
+  }
+
+  return { ok: false, message: "Could not identify chunk schema (structural detection failed).",
+    schema: BEJSON_CORE_CHUNKING_MFDB_SCHEMA_UNKNOWN, warning };
+}
+
+// ---------------------------------------------------------------------------
+// Exports (CommonJS + browser global) — matches sibling Core file convention.
+// ---------------------------------------------------------------------------
+
+const exports_ = {
+  DEFAULT_EXTENSIONS,
+  DEFAULT_EXCLUDES,
+  CHUNKED_104_FIELDS,
+  MFDB_MANIFEST_FILENAME,
+  MFDB_CHUNK_SCHEMA_VERSION,
+  LOCK_FILE_132,
+  bejsonCoreChunkingGetTimestamp,
+  bejsonCoreChunkingIsBinary,
+  bejsonCoreChunkingHashFileBytes,
+  bejsonCoreChunkingBumpPackageVersion,
+  bejsonCoreChunkingCreateChunked104,
+  bejsonCoreChunkingUnchunkChunked104,
+  bejsonCoreChunkingCreateMfdb132Package,
+  bejsonCoreChunkingIsMfdb132Package,
+  bejsonCoreChunkingValidateMfdb132Package,
+  bejsonCoreChunkingUnchunkMfdb132Package,
+  bejsonCoreChunkingDetectMfdbInChunk,
+  bejsonCoreChunkingMfdbGetFieldMap,
+  bejsonCoreChunkingMfdbDetectSchema,
+  bejsonCoreChunkingMfdbCheckVersion,
+  bejsonCoreChunkingMfdbUnchunk,
+  MFDB132Archive,
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = exports_;
+} else {
+  window.BEJSON_CORE_CHUNKING = exports_;
+}
