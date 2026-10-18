@@ -3,12 +3,21 @@ Library:         lib_bejson_AI_ai_registry_base.py
 Family:          AI
 Module Purpose:  Implements runtime functionality and logic for lib_bejson_AI_ai_registry_base.py.
 Architecture:    BEJSON 104a provides fast primitive metadata and manifest configuration with O(1) field map caching.
-Version:         2.0.1
+Version:         2.1.0
 Release_Version: 300
-Date:            2026-09-21
+Date:            2026-10-13
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator:  Elton Boehnen
-RELATIONAL_ID:   eac5dfb2-c02d-45f3-89c1-d898d8811433
+RELATIONAL_ID:   b4f17d93-2c68-4e0a-9a35-7d1e8c52f046
+
+Changelog:
+  2.1.0 (2026-10-13) - Bug fix + secure-store fill. (1) RoundRobinKeyRegistry.load() scanned the
+        numbered slots (GEMINI_KEY_1.. / GROQ_KEY_1..) only INSIDE `if self.env_var:`, so a registry
+        built with env_var_prefix alone never read any env key; the two checks are now independent.
+        (2) load() first calls source_env_fill() (Core env 2.3.0, non-overwriting, cached) so keys held
+        in secureenv_file.json are visible without the caller sourcing the env first. If the Core env
+        lib is older or absent the call is skipped and behaviour is exactly as before. (3) env keys are
+        de-duplicated. File fallback, placeholder filtering and every public name are unchanged.
 """
 
 import logging
@@ -23,9 +32,14 @@ from lib_bejson_Core_bejson_core import (
     bejson_core_load_file,
 )
 
+try:  # Core env 2.3.0+; older/absent Core -> no-op and behaviour is unchanged
+    from lib_bejson_Core_bejson_env import source_env_fill as _source_env_fill
+except ImportError:
+    _source_env_fill = None
+
 logger = logging.getLogger("lib_bejson_AI_ai_registry_base")
 
-VERSION = "2.0.1"
+VERSION = "2.1.0"
 
 
 # --- Self-contained storage location ---------------------------------------
@@ -158,13 +172,22 @@ class RoundRobinKeyRegistry:
     def load(self) -> None:
         self.keys = []
 
+        if _source_env_fill is not None:
+            try:
+                _source_env_fill()
+            except Exception as e:
+                logger.warning(f"[RoundRobinKeyRegistry] secure env fill skipped: {type(e).__name__}")
+
         if self.env_var:
             env_val = os.environ.get(self.env_var, "")
-            self.keys.extend(k.strip() for k in env_val.split(",") if k.strip())
+            for k in (k.strip() for k in env_val.split(",")):
+                if k and k not in self.keys:
+                    self.keys.append(k)
 
+        if self.env_var_prefix:
             for i in range(1, self.env_var_max_slots + 1):
                 v = os.environ.get(f"{self.env_var_prefix}_{i}", "").strip()
-                if v:
+                if v and v not in self.keys:
                     self.keys.append(v)
 
         try:

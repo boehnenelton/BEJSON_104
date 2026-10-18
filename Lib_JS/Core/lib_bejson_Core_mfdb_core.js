@@ -7,17 +7,23 @@
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
  *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
  *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
- * Version:         2.3.4
+ * Version:         2.3.5
  * Release_Version: 300
- * Date:            2026-10-02
+ * Date:            2026-10-16
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
- * RELATIONAL_ID:   edb43cd0-e78c-4e07-8c85-1778011fe05b
+ * RELATIONAL_ID:   3781959d-71ba-4cda-8a4b-8dfada89bf72
  */
 
 'use strict';
 
-const JSZip = window.JSZip || (typeof require !== 'undefined' ? require('jszip') : null);
+// JSZip is only needed by MFDBArchive. Before 2.3.5 this line read window.JSZip unguarded, so the module threw
+// ReferenceError on load under Node. Now: browser global, else the optional 'jszip' package, else null.
+const JSZip = (() => {
+  if (typeof window !== 'undefined' && window.JSZip) return window.JSZip;
+  if (typeof require !== 'undefined') { try { return require('jszip'); } catch (_) { return null; } }
+  return null;
+})();
 
 // ---------------------------------------------------------------------------
 // Setup environments — required by the manifest/entity manipulation functions below, which depend on
@@ -89,6 +95,27 @@ function _writeFile(filePath, content) {
  */
 function _writeBejson(filePath, doc) {
   _writeFile(filePath, JSON.stringify(doc, null, 2));
+}
+
+/**
+ * Atomic write of a BEJSON document: same-directory temp file, then rename (Node only). Added in 2.3.5: the
+ * federation and debug functions called this name 13 times but it was never defined (ReferenceError).
+ * Underscore-prefixed keys (in-memory caches) are never persisted.
+ */
+function _atomicWrite(filePath, doc) {
+  if (!_isNode()) {
+    console.warn('Sync write not available in browser');
+    return;
+  }
+  const fs = require('fs');
+  const path = require('path');
+  const clean = {};
+  for (const k of Object.keys(doc)) { if (!k.startsWith('_')) clean[k] = doc[k]; }
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmp = path.join(dir, '.' + path.basename(filePath) + '.' + process.pid + '.tmp');
+  fs.writeFileSync(tmp, JSON.stringify(clean, null, 2), 'utf8');
+  fs.renameSync(tmp, filePath);
 }
 
 // ---------------------------------------------------------------------------
@@ -214,7 +241,7 @@ function mfdb_core_sync_all_counts(manifestPath) {
 /**
  * Creates a new empty entity file: BEJSON 104, one Records_Type, Parent_Hierarchy pointing back to the manifest. Node only.
  */
-function mfdb_core_init_entity_file(manifestPath, entityName, fields, filePathRel) {
+function mfdb_core_init_entity_file(manifestPath, entityName, fields, filePathRel, options = {}) {
   if (!_isNode()) return;
   const path = require('path');
   const manifestDir = path.dirname(path.resolve(manifestPath));
@@ -238,6 +265,8 @@ function mfdb_core_init_entity_file(manifestPath, entityName, fields, filePathRe
     entity_name: entityName,
     file_path: filePathRel,
     record_count: 0,
+    description: options.description,
+    primary_key: options.primary_key,
   });
 
   return doc;
@@ -372,7 +401,7 @@ function mfdb_core_create_connected_slave_entity(manifestPath) {
     );
   }
   return mfdb_core_init_entity_file(
-    manifestPath, "ConnectedSlave", CONNECTED_SLAVE_SCHEMA,
+    manifestPath, "ConnectedSlave", CONNECTED_SLAVE_SCHEMA, "data/connectedslave.bejson",
     { description: "Registry of Slave nodes connected to this Master.", primary_key: "slave_id" }
   );
 }

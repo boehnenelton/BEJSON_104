@@ -75,38 +75,6 @@
     ],
     [
       "VERSION",
-      "Core_Nesting",
-      "PY",
-      "CURRENT_VERSION",
-      "0.4.1",
-      ""
-    ],
-    [
-      "VERSION",
-      "Core_Nesting",
-      "JS",
-      "CURRENT_VERSION",
-      "0.4.1",
-      ""
-    ],
-    [
-      "VERSION",
-      "Core_Nesting",
-      "TS",
-      "CURRENT_VERSION",
-      "0.4.1",
-      ""
-    ],
-    [
-      "VERSION",
-      "Core_Nesting",
-      "SH",
-      "CURRENT_VERSION",
-      "0.4.1",
-      ""
-    ],
-    [
-      "VERSION",
       "Cognition",
       "PY",
       "CURRENT_VERSION",
@@ -263,7 +231,7 @@
       "SH",
       "CURRENT_VERSION",
       "2.0.0",
-      "Bumped 1.0.0 -> 2.0.0 for the 200-206 -> 340-346 error-code renumber (breaking rename)"
+      "Bumped 1.0.0 -> 2.0.0 for the 200-206 -> 340-346 error-code renumber (breaking rename) (codes later moved again to 360-366 to match lib_bejson_TerminalMenus_bejson_errors.sh; registry reconciled 2026-10-14)"
     ]
   ]
 }

@@ -7,12 +7,15 @@
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
  *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
  *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
- * Version:         2.0.4
+ * Version:         2.1.0
  * Release_Version: 300
- * Date:            2026-10-02
+ * Date:            2026-10-16
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
- * RELATIONAL_ID:   f8dd5e1c-e1a1-46d2-808d-ef871d334510
+ * RELATIONAL_ID:   94da460d-a999-4447-a754-9b75ca8148b5
+ * Changelog:
+ *   2.1.0 (2026-10-16) - Added bejson_validator_validate_object (isolated validation of an in-memory object; preserves the caller's module-level errors/warnings).
+ *           Format_Creator must now be 'Elton Boehnen' (was: any string) - parity with the Python, TypeScript and Bash validators.
  */
 
 'use strict';
@@ -290,7 +293,7 @@ function bejson_validator_check_json_syntax(input, isFile = false) {
 
 /**
  * Step 2: the six mandatory top-level keys (Format, Format_Version, Format_Creator, Records_Type, Fields, Values) must exist
- * and Format_Creator must be a string. Returns Format_Version ('104', '104a' or '104db'). Same keys for every version and for MFDB manifest/entity files (104a / 104).
+ * and Format_Creator must be 'Elton Boehnen' (same rule as the Python, TypeScript and Bash validators). Returns Format_Version ('104', '104a' or '104db'). Same keys for every version and for MFDB manifest/entity files (104a / 104).
  */
 function bejson_validator_check_mandatory_keys(doc) {
   for (const key of MANDATORY_KEYS) {
@@ -318,8 +321,8 @@ function bejson_validator_check_mandatory_keys(doc) {
     throw new BEJSONValidationError(`Invalid version: ${version}`, E_INVALID_VERSION);
   }
 
-  if (typeof doc['Format_Creator'] !== 'string') {
-    _state.addError("Invalid 'Format_Creator': Must be a string", 'Top-Level Keys/Format_Creator');
+  if (doc['Format_Creator'] !== 'Elton Boehnen') {
+    _state.addError("Invalid 'Format_Creator': Must be 'Elton Boehnen'", 'Top-Level Keys/Format_Creator');
     throw new BEJSONValidationError('Invalid Format_Creator', E_INVALID_FORMAT);
   }
 
@@ -600,10 +603,19 @@ const _PASCAL_CASE = /^[A-Z][a-zA-Z0-9_]*$/;
 /**
  * Step 7: custom top-level keys. 104 and 104db forbid them (except Parent_Hierarchy); 104a allows them as file-level metadata. MFDB manifests use that 104a allowance for MFDB_Version, DB_Name, etc.
  */
-function bejson_validator_check_custom_headers(doc, version) {
+const IN_MEMORY_ONLY_KEYS = new Set(['_nestingFieldMap']); // other in-memory caches (never persisted)
+function bejson_validator_check_custom_headers(doc, version, persisted = true) {
   const mandatorySet = new Set(MANDATORY_KEYS);
   for (const key of Object.keys(doc)) {
-    if (mandatorySet.has(key) || key === 'Parent_Hierarchy') continue;
+    if (mandatorySet.has(key) || key === 'Parent_Hierarchy' || key === '_bejson_field_map') continue;
+    // '_' prefix is reserved for in-memory caches: persisted input never carries one; in-memory input only the known ones.
+    if (key.startsWith('_')) {
+      if (persisted || !IN_MEMORY_ONLY_KEYS.has(key)) {
+        _state.addError(`Reserved key '${key}' uses the reserved '_' prefix.`, `Top-Level Keys/${key}`);
+        throw new BEJSONValidationError(`Reserved key collision: ${key}`, E_RESERVED_KEY_COLLISION);
+      }
+      continue;
+    }
     if (version === '104' || version === '104db') {
       _state.addError(
         `For BEJSON ${version}, custom top-level key '${key}' is not permitted.`,
@@ -623,18 +635,67 @@ function bejson_validator_check_custom_headers(doc, version) {
 // ---------------------------------------------------------------------------
 
 /**
+ * The field-map cache is an in-memory artifact. Text input must not contain it; an already-parsed object may carry it
+ * only if it matches Fields exactly (validation is not a hot path, so the whole map is compared).
+ */
+function bejson_validator_check_field_map_cache(doc, persisted) {
+  if (!Object.prototype.hasOwnProperty.call(doc, '_bejson_field_map')) return;
+  if (persisted) {
+    _state.addError("Reserved key '_bejson_field_map' must not be persisted (in-memory cache only)", 'Top-Level Keys/_bejson_field_map');
+    throw new BEJSONValidationError("Reserved key '_bejson_field_map' must not be persisted", E_RESERVED_KEY_COLLISION);
+  }
+  const cached = doc._bejson_field_map;
+  const fields = Array.isArray(doc.Fields) ? doc.Fields : [];
+  const ok = cached && typeof cached === 'object' && Object.keys(cached).length === fields.length
+    && fields.every((f, i) => f && cached[f.name] === i);
+  if (!ok) {
+    _state.addError("In-memory '_bejson_field_map' does not match Fields (stale or forged)", 'Top-Level Keys/_bejson_field_map');
+    throw new BEJSONValidationError("In-memory '_bejson_field_map' does not match Fields", E_RESERVED_KEY_COLLISION);
+  }
+}
+
+/**
  * Runs all steps on a JSON string. Returns true/false; details via get_errors / get_warnings. Structural BEJSON rules only (MFDB rules are in mfdb_validator).
  */
 function bejson_validator_validate_string(jsonString) {
   bejson_validator_reset_state();
   const doc          = bejson_validator_check_json_syntax(jsonString, false);
   const version      = bejson_validator_check_mandatory_keys(doc);
-  bejson_validator_check_custom_headers(doc, version);
+  const persisted    = typeof jsonString === 'string';
+  bejson_validator_check_field_map_cache(doc, persisted);
+  bejson_validator_check_custom_headers(doc, version, persisted);
   bejson_validator_check_records_type(doc, version);
   const fieldsCount  = bejson_validator_check_fields_structure(doc, version);
   if (version === '104db') bejson_validator_check_record_type_parent(doc);
   bejson_validator_check_values(doc, version, fieldsCount);
   return true;
+}
+
+/**
+ * Validates an in-memory BEJSON object WITHOUT touching the module-level state: the caller's errors/warnings from an earlier
+ * run are saved, a clean run is made, and the caller's state is restored. Returns { valid, errors, warnings }. Used by the
+ * Core nesting module to validate embedded documents (the validator is the single source of the rules).
+ */
+function bejson_validator_validate_object(doc) {
+  const saved = { errors: _state.errors, warnings: _state.warnings, currentFile: _state.currentFile };
+  let valid = true;
+  let errors = [];
+  let warnings = [];
+  try {
+    try {
+      bejson_validator_validate_string(doc);
+    } catch (_) {
+      valid = false;
+    }
+    errors = _state.getErrors();
+    warnings = _state.getWarnings();
+    if (errors.length) valid = false;
+  } finally {
+    _state.errors = saved.errors;
+    _state.warnings = saved.warnings;
+    _state.currentFile = saved.currentFile;
+  }
+  return { valid, errors, warnings };
 }
 
 /**
@@ -689,4 +750,27 @@ function bejson_validator_get_report(input, isFile = false) {
   }
 
   return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Exports (UMD-like, same pattern as the Core library). Before 2.0.6 this module exported nothing, so
+// mfdb_validator.js, parse.js and Lists received undefined functions.
+// ---------------------------------------------------------------------------
+const ValidatorExports = {
+  BEJSONValidationError,
+  bejson_validator_reset_state, bejson_validator_get_errors, bejson_validator_get_warnings,
+  bejson_validator_has_errors, bejson_validator_has_warnings,
+  bejson_validator_error_count, bejson_validator_warning_count,
+  bejson_validator_check_dependencies, bejson_validator_check_json_syntax,
+  bejson_validator_check_mandatory_keys, bejson_validator_check_records_type,
+  bejson_validator_check_fields_structure, bejson_validator_check_record_type_parent,
+  bejson_validator_check_values, bejson_validator_check_custom_headers,
+  bejson_validator_check_field_map_cache,
+  bejson_validator_validate_string, bejson_validator_validate_object, bejson_validator_validate_file, bejson_validator_get_report,
+};
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = ValidatorExports;
+}
+if (typeof window !== 'undefined') {
+  window.BEJSON_VALIDATOR = Object.assign(window.BEJSON_VALIDATOR || {}, ValidatorExports);
 }

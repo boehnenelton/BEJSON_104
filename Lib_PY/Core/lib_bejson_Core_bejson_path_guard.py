@@ -1,13 +1,13 @@
 """
 Library:         lib_bejson_Core_bejson_path_guard.py
 Family:          Core
-Module Purpose:  Path-traversal guard and storage-path resolution; includes the check that an MFDB entity's Parent_Hierarchy cannot escape the MFDB root.
+Module Purpose:  Path-traversal guard and storage-path resolution; includes the check that an MFDB entity's Parent_Hierarchy cannot escape the MFDB root, plus safe_extract_zip() for zip-slip-safe archive extraction.
 Architecture:    Path security helper. Only _bejson_mfdb_escapes_root relates to MFDB (it validates the relative Parent_Hierarchy path of an entity file); nothing here is 104db-specific.
 Format_Scope:    None, except _bejson_mfdb_escapes_root (MFDB Parent_Hierarchy containment)
 Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-Version:         1.1.4
+Version:         1.3.0
 Release_Version: 300
 Date:            2026-10-02
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
@@ -93,4 +93,26 @@ def _bejson_mfdb_escapes_root(relative_path: str) -> bool:
     return False
 
 
-VERSION = "1.2.0"
+# Extracts every member of an open ZipFile into dest_dir after validating all paths with bejson_safe_join.
+def safe_extract_zip(zf, dest_dir: str) -> None:
+    """
+    Extract every member of an open ZipFile into dest_dir, rejecting the
+    whole archive if any member's name would resolve outside dest_dir
+    (zip-slip: '../' segments, absolute paths, or symlink-style tricks
+    encoded in the name). zipfile.ZipFile.extractall() does NOT do this
+    check itself -- member names are used as-is to build the destination
+    path, so a crafted archive can write anywhere the process can reach.
+    Raises ValueError on the first unsafe member found, before extracting
+    anything, so a malicious zip is rejected atomically rather than
+    partially extracted. Uses bejson_safe_join()'s sibling-directory-safe
+    boundary check (v1.1.0+) rather than a raw prefix test.
+    """
+    dest_path = Path(dest_dir).resolve()
+    for member in zf.infolist():
+        # bejson_safe_join raises ValueError itself if the resolved path
+        # escapes dest_dir -- let that propagate to the caller.
+        bejson_safe_join(str(dest_path), member.filename)
+    zf.extractall(dest_dir)
+
+
+VERSION = "1.3.0"

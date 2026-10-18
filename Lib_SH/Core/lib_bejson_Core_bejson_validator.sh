@@ -7,12 +7,12 @@
 # Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
 #                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
 #                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-# Version:         2.1.4
+# Version:         2.1.5
 # Release_Version: 300
-# Date:            2026-10-06
+# Date:            2026-10-16
 # Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 # Format_Creator:  Elton Boehnen
-# RELATIONAL_ID:   c4c84164-e410-4afb-9639-923b529d3419
+# RELATIONAL_ID:   f1658e86-a39e-490c-a78e-789f54c28473
 # -----------------------------------------------------------------------------
 
 set -o pipefail
@@ -83,8 +83,8 @@ bejson_validator_validate_file() {
         return $E_RECORD_LENGTH_MISMATCH
     fi
 
-    # 4b. The field-map cache is in-memory only; a persisted copy is forbidden (parity with Py/JS validators)
-    if jq -e 'has("_bejson_field_map")' "$file_path" >/dev/null 2>&1; then
+    # 4b. The '_' prefix is reserved for in-memory caches (_bejson_field_map, _nesting_field_map, ...); a file never carries one
+    if jq -e 'keys | map(select(startswith("_"))) | length > 0' "$file_path" >/dev/null 2>&1; then
         return $E_RESERVED_KEY_COLLISION
     fi
 

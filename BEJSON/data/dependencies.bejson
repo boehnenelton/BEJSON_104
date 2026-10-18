@@ -402,26 +402,10 @@
       true
     ],
     [
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Lib_PY/Core_Nesting/lib_bejson_CoreNesting_bejson_core_nesting.py",
-      "Lib_PY/Core_Nesting/lib_bejson_CoreNesting_bejson_errors.py",
-      "import",
-      false
-    ],
-    [
-      "Core_Nesting",
-      "PY",
-      "Lib_PY/Core_Nesting/lib_bejson_CoreNesting_bejson_nesting_query.py",
-      "Lib_PY/Core_Nesting/lib_bejson_CoreNesting_bejson_core_nesting.py",
-      "import",
-      false
-    ],
-    [
-      "Core_Nesting",
-      "PY",
-      "Lib_PY/Core_Nesting/lib_bejson_CoreNesting_bejson_nesting_query.py",
-      "Lib_PY/Core_Nesting/lib_bejson_CoreNesting_bejson_errors.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_core_nesting.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_errors.py",
       "import",
       false
     ],
@@ -542,22 +526,6 @@
       "PY",
       "Lib_PY/Core/lib_bejson_Core_mfdb_core.py",
       "Lib_PY/Core/lib_bejson_Core_bejson_env.py",
-      "import",
-      false
-    ],
-    [
-      "Core",
-      "PY",
-      "Lib_PY/Core/lib_bejson_Core_bejson_list_validator.py",
-      "Lib_PY/Core/lib_bejson_Core_bejson_validator.py",
-      "import",
-      false
-    ],
-    [
-      "Core",
-      "PY",
-      "Lib_PY/Core/lib_bejson_Core_bejson_list_validator.py",
-      "Lib_PY/Core/lib_bejson_Core_bejson_core.py",
       "import",
       false
     ],
@@ -890,18 +858,10 @@
       false
     ],
     [
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Lib_JS/Core_Nesting/lib_bejson_CoreNesting_bejson_core_nesting.js",
-      "Lib_JS/Core_Nesting/lib_bejson_CoreNesting_bejson_errors.js",
-      "require",
-      false
-    ],
-    [
-      "Core_Nesting",
-      "JS",
-      "Lib_JS/Core_Nesting/lib_bejson_CoreNesting_bejson_nesting_query.js",
-      "Lib_JS/Core_Nesting/lib_bejson_CoreNesting_bejson_errors.js",
+      "Lib_JS/Core/lib_bejson_Core_bejson_core_nesting.js",
+      "Lib_JS/Core/lib_bejson_Core_bejson_errors.js",
       "require",
       false
     ],
@@ -957,22 +917,6 @@
       "Core",
       "JS",
       "Lib_JS/Core/bejson_cache.test.js",
-      "Lib_JS/Core/lib_bejson_Core_bejson_core.js",
-      "require",
-      false
-    ],
-    [
-      "Core",
-      "JS",
-      "Lib_JS/Core/lib_bejson_Core_bejson_list_validator.js",
-      "Lib_JS/Core/lib_bejson_Core_bejson_validator.js",
-      "require",
-      false
-    ],
-    [
-      "Core",
-      "JS",
-      "Lib_JS/Core/lib_bejson_Core_bejson_list_validator.js",
       "Lib_JS/Core/lib_bejson_Core_bejson_core.js",
       "require",
       false
@@ -1050,26 +994,10 @@
       true
     ],
     [
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Lib_TS/Core_Nesting/lib_bejson_CoreNesting_bejson_nesting_query.ts",
-      "Lib_TS/Core_Nesting/lib_bejson_CoreNesting_bejson_core_nesting.ts",
-      "import",
-      false
-    ],
-    [
-      "Core_Nesting",
-      "TS",
-      "Lib_TS/Core_Nesting/lib_bejson_CoreNesting_bejson_nesting_query.ts",
-      "Lib_TS/Core_Nesting/lib_bejson_CoreNesting_bejson_errors.ts",
-      "import",
-      false
-    ],
-    [
-      "Core_Nesting",
-      "TS",
-      "Lib_TS/Core_Nesting/lib_bejson_CoreNesting_bejson_core_nesting.ts",
-      "Lib_TS/Core_Nesting/lib_bejson_CoreNesting_bejson_errors.ts",
+      "Lib_TS/Core/lib_bejson_Core_bejson_core_nesting.ts",
+      "Lib_TS/Core/lib_bejson_Core_bejson_types.ts",
       "import",
       false
     ],
@@ -1085,22 +1013,6 @@
       "Core",
       "TS",
       "Lib_TS/Core/lib_bejson_Core_bejson_field_map.ts",
-      "Lib_TS/Core/lib_bejson_Core_bejson_types.ts",
-      "import",
-      false
-    ],
-    [
-      "Core",
-      "TS",
-      "Lib_TS/Core/lib_bejson_Core_bejson_list_validator.ts",
-      "Lib_TS/Core/lib_bejson_Core_bejson_validators.ts",
-      "import",
-      false
-    ],
-    [
-      "Core",
-      "TS",
-      "Lib_TS/Core/lib_bejson_Core_bejson_list_validator.ts",
       "Lib_TS/Core/lib_bejson_Core_bejson_types.ts",
       "import",
       false
@@ -1282,18 +1194,10 @@
       false
     ],
     [
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Lib_SH/Core_Nesting/lib_bejson_CoreNesting_bejson_core_nesting.sh",
-      "Lib_SH/Core_Nesting/lib_bejson_CoreNesting_bejson_errors.sh",
-      "source",
-      false
-    ],
-    [
-      "Core_Nesting",
-      "SH",
-      "Lib_SH/Core_Nesting/lib_bejson_CoreNesting_bejson_nesting_query.sh",
-      "Lib_SH/Core_Nesting/lib_bejson_CoreNesting_bejson_errors.sh",
+      "Lib_SH/Core/lib_bejson_Core_bejson_core_nesting.sh",
+      "Lib_SH/Core/lib_bejson_Core_bejson_errors.sh",
       "source",
       false
     ],
@@ -1671,6 +1575,214 @@
       "Lib_SH/Terminal_Menus/lib_bejson_TerminalMenus_engine_aot.sh",
       "Lib_SH/Terminal_Menus/lib_bejson_TerminalMenus_bejson_errors.sh",
       "source",
+      false
+    ],
+    [
+      "Lists",
+      "PY",
+      "Lib_PY/Lists/lib_bejson_Lists_list_validator.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_validator.py",
+      "import",
+      true
+    ],
+    [
+      "Lists",
+      "PY",
+      "Lib_PY/Lists/lib_bejson_Lists_list_validator.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_core.py",
+      "import",
+      true
+    ],
+    [
+      "Lists",
+      "PY",
+      "Lib_PY/Lists/lib_bejson_Lists_list_validator.py",
+      "Lib_PY/Lists/lib_bejson_Lists_bejson_errors.py",
+      "import",
+      false
+    ],
+    [
+      "Lists",
+      "JS",
+      "Lib_JS/Lists/lib_bejson_Lists_list_validator.js",
+      "Lib_JS/Core/lib_bejson_Core_bejson_core.js",
+      "require",
+      true
+    ],
+    [
+      "Lists",
+      "JS",
+      "Lib_JS/Lists/lib_bejson_Lists_list_validator.js",
+      "Lib_JS/Core/lib_bejson_Core_bejson_validator.js",
+      "require",
+      true
+    ],
+    [
+      "Lists",
+      "JS",
+      "Lib_JS/Lists/lib_bejson_Lists_list_validator.js",
+      "Lib_JS/Lists/lib_bejson_Lists_bejson_errors.js",
+      "require",
+      false
+    ],
+    [
+      "Lists",
+      "TS",
+      "Lib_TS/Lists/lib_bejson_Lists_list_validator.ts",
+      "Lib_TS/Core/lib_bejson_Core_bejson_validators.ts",
+      "import",
+      true
+    ],
+    [
+      "Lists",
+      "TS",
+      "Lib_TS/Lists/lib_bejson_Lists_list_validator.ts",
+      "Lib_TS/Core/lib_bejson_Core_bejson_field_map.ts",
+      "import",
+      true
+    ],
+    [
+      "Lists",
+      "TS",
+      "Lib_TS/Lists/lib_bejson_Lists_list_validator.ts",
+      "Lib_TS/Core/lib_bejson_Core_bejson_types.ts",
+      "import",
+      true
+    ],
+    [
+      "Lists",
+      "TS",
+      "Lib_TS/Lists/lib_bejson_Lists_list_validator.ts",
+      "Lib_TS/Lists/lib_bejson_Lists_bejson_errors.ts",
+      "import",
+      false
+    ],
+    [
+      "Lists",
+      "TS",
+      "Lib_TS/Lists/index.ts",
+      "Lib_TS/Lists/lib_bejson_Lists_list_validator.ts",
+      "import",
+      false
+    ],
+    [
+      "Lists",
+      "TS",
+      "Lib_TS/Lists/index.ts",
+      "Lib_TS/Lists/lib_bejson_Lists_bejson_errors.ts",
+      "import",
+      false
+    ],
+    [
+      "Lists",
+      "SH",
+      "Lib_SH/Lists/lib_bejson_Lists_list_validator.sh",
+      "Lib_SH/Core/lib_bejson_Core_bejson_validator.sh",
+      "source",
+      true
+    ],
+    [
+      "Lists",
+      "SH",
+      "Lib_SH/Lists/lib_bejson_Lists_list_validator.sh",
+      "Lib_SH/Lists/lib_bejson_Lists_bejson_errors.sh",
+      "source",
+      false
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/lib_bejson_AI_ai_registry_base.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_core.py",
+      "import",
+      true
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/lib_bejson_AI_ai_registry_base.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_env.py",
+      "import",
+      true
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/lib_bejson_AI_ai_context_files.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_core.py",
+      "import",
+      true
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/lib_bejson_AI_ai_structured_reception.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_validator.py",
+      "import",
+      true
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/lib_bejson_AI_bejson_geminirest.py",
+      "Lib_PY/AI/lib_bejson_AI_bejson_gemini.py",
+      "import",
+      false
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/lib_bejson_AI_ai_dispatch.py",
+      "Lib_PY/AI/lib_bejson_AI_bejson_geminirest.py",
+      "import",
+      false
+    ],
+    [
+      "Core",
+      "PY",
+      "Lib_PY/Core/lib_bejson_Core_bejson_core_nesting.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_core.py",
+      "import",
+      false
+    ],
+    [
+      "Core",
+      "PY",
+      "Lib_PY/Core/lib_bejson_Core_bejson_core_nesting.py",
+      "Lib_PY/Core/lib_bejson_Core_bejson_validator.py",
+      "import",
+      false
+    ],
+    [
+      "Core",
+      "JS",
+      "Lib_JS/Core/lib_bejson_Core_bejson_core_nesting.js",
+      "Lib_JS/Core/lib_bejson_Core_bejson_core.js",
+      "require",
+      false
+    ],
+    [
+      "Core",
+      "JS",
+      "Lib_JS/Core/lib_bejson_Core_bejson_core_nesting.js",
+      "Lib_JS/Core/lib_bejson_Core_bejson_validator.js",
+      "require",
+      false
+    ],
+    [
+      "Core",
+      "TS",
+      "Lib_TS/Core/lib_bejson_Core_bejson_core_nesting.ts",
+      "Lib_TS/Core/lib_bejson_Core_bejson_field_map.ts",
+      "import",
+      false
+    ],
+    [
+      "Core",
+      "TS",
+      "Lib_TS/Core/lib_bejson_Core_bejson_core_nesting.ts",
+      "Lib_TS/Core/lib_bejson_Core_bejson_validators.ts",
+      "import",
       false
     ]
   ]

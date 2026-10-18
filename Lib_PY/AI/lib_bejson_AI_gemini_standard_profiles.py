@@ -6,14 +6,36 @@ Description:    AI Profile manager for the BEJSON ecosystem.
                 This_Case_Fields (no CrammedFieldNames). All reads and
                 writes go through the Field Map Cache; positional
                 look-ups are strictly prohibited.
-Version:        3.0.0
-Date:           2026-09-04
+Version:        3.1.0
+Date:           2026-10-02
 Author:         Elton Boehnen
 Contact:        boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  d4f1a9b2-3c7e-4d0a-8f6e-1b5a2c9e7d3f
+RELATIONAL_ID:  9d12ac56-5465-4ce0-bde7-409115edbb4d
 
 Changelog:
+  3.1.0 (2026-10-02) -- Added the OPTIONAL "Mode" profile field (string).
+          Mode is a free-form hint a custom client may read to switch on a
+          feature for that profile (e.g. "structured_output",
+          "profile_generator"); the library assigns it no meaning and
+          enforces no value list, and a client is free to ignore it.
+          Completely optional: gemini_profiles_validate() accepts a profile
+          with or without a Mode column, and a null/blank Mode is the same
+          as no Mode. If a Mode column IS present it must be declared
+          "string". The canonical PROFILE_FIELDS list and the required-
+          field set are UNCHANGED, so every existing profile stays valid
+          and no existing file needs migration. New: PROFILE_MODE_FIELD,
+          OPTIONAL_PROFILE_FIELDS, gemini_profiles_get_mode(),
+          gemini_profiles_set_mode(); gemini_profiles_create() accepts an
+          optional Mode= kwarg (column is added only when a Mode is given).
+          set_mode() appends the column at the END of Fields (positional
+          integrity), null-pads existing rows, and drops the stale
+          in-document field-map cache so the Field Map Cache is rebuilt.
+          Also fixed: gemini_profiles_validate() now ignores the runtime-
+          only _bejson_field_map cache key that Core injects into a doc
+          after any field-map lookup (previously a profile that had been
+          read via gemini_profiles_get_value() failed validation in
+          memory, because 104 forbids custom top-level keys).
   3.0.0 (2026-09-04) -- Renamed from lib_bejson_AI_bejson_gemprofiles.py.
           Migrated all field names to This_Case convention
           (System_Instruction, Forbidden_Topics, Avatar_Source_Url,
@@ -50,7 +72,7 @@ from lib_bejson_Core_bejson_core import (
 )
 import lib_bejson_Core_bejson_validator
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +109,18 @@ PROFILE_FIELDS: List[Dict[str, str]] = [
 
 _REQUIRED_FIELD_NAMES = {f["name"] for f in PROFILE_FIELDS}
 
+# ── Optional fields ───────────────────────────────────────────────────────────
+# Optional fields are NOT part of PROFILE_FIELDS / the required set. A profile
+# is valid with or without them; when present they are appended at the END of
+# Fields. "Mode" is a free-form hint for custom clients (they may act on it,
+# e.g. "structured_output" or "profile_generator", or ignore it entirely).
+# The library attaches no meaning to Mode and enforces no list of values.
+PROFILE_MODE_FIELD = "Mode"
+
+OPTIONAL_PROFILE_FIELDS: List[Dict[str, str]] = [
+    {"name": PROFILE_MODE_FIELD, "type": "string"},
+]
+
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -97,10 +131,16 @@ def gemini_profiles_validate(doc: Dict[str, Any]) -> bool:
       1. The document passes the Core BEJSON structural validator.
       2. Every canonical This_Case field name is present.
       3. Records_Type contains "AI_Profile".
+      4. If the optional "Mode" field is present, it is declared "string".
+         A missing Mode is fine; so is a null/blank value.
     """
     try:
+        # _bejson_field_map is the Core Field Map Cache injected into the doc
+        # at runtime by any get_value()/set_mode() call -- it is not file
+        # content, and a 104 doc may not carry custom top-level keys, so it
+        # is excluded before structural validation.
         lib_bejson_Core_bejson_validator.bejson_validator_validate_string(
-            json.dumps(doc)
+            json.dumps({k: v for k, v in doc.items() if k != "_bejson_field_map"})
         )
         fields = doc.get("Fields", [])
         field_names = {f["name"] for f in fields}
@@ -111,6 +151,15 @@ def gemini_profiles_validate(doc: Dict[str, Any]) -> bool:
         if "AI_Profile" not in doc.get("Records_Type", []):
             logger.debug("Profile validation: Records_Type does not contain AI_Profile")
             return False
+        # Optional fields: absent is valid; present must have the right type.
+        for opt in OPTIONAL_PROFILE_FIELDS:
+            for f in fields:
+                if f["name"] == opt["name"] and f.get("type") != opt["type"]:
+                    logger.debug(
+                        "Profile validation: optional field %s declared %s, expected %s",
+                        opt["name"], f.get("type"), opt["type"],
+                    )
+                    return False
         return True
     except Exception as exc:
         logger.debug("Profile validation exception: %s", exc)
@@ -127,6 +176,9 @@ def gemini_profiles_create(
     """
     Creates a new AI_Profile BEJSON 104a document with This_Case fields.
     All optional parameters use keyword args keyed by This_Case field name.
+    Mode (optional): if a non-blank string is given, the optional "Mode"
+    column is appended to the end of Fields; otherwise the profile has no
+    Mode column at all.
     """
     values = [
         "AI_Profile",
@@ -155,14 +207,76 @@ def gemini_profiles_create(
         kwargs.get("Thinking_Supported", True),
     ]
 
-    return {
+    doc = {
         "Format": "BEJSON",
         "Format_Version": "104",
         "Format_Creator": "Elton Boehnen",
         "Records_Type": ["AI_Profile"],
-        "Fields": PROFILE_FIELDS,
+        # Copy so appending optional fields never mutates PROFILE_FIELDS.
+        "Fields": [dict(f) for f in PROFILE_FIELDS],
         "Values": [values],
     }
+    mode = kwargs.get(PROFILE_MODE_FIELD)
+    if mode is not None:
+        gemini_profiles_set_mode(doc, mode)
+    return doc
+
+
+def gemini_profiles_get_mode(
+    profile: Dict[str, Any], record_index: int = 0
+) -> Optional[str]:
+    """
+    Returns the profile's Mode as a stripped string, or None when the
+    profile has no Mode column, the value is null/blank, or it is not a
+    string. Never raises -- "no mode" is the normal case. The library gives
+    Mode no meaning; the calling client decides what (if anything) to do
+    with it.
+    """
+    value = gemini_profiles_get_value(profile, PROFILE_MODE_FIELD, record_index)
+    if isinstance(value, str):
+        value = value.strip()
+        return value or None
+    return None
+
+
+def gemini_profiles_set_mode(
+    profile: Dict[str, Any], mode: Optional[str], record_index: int = 0
+) -> bool:
+    """
+    Sets (or clears) the optional Mode on *profile* in place.
+
+    - mode is a non-blank string: stored stripped. If the profile has no
+      Mode column yet, it is appended at the END of Fields and every
+      existing row is null-padded (positional integrity preserved).
+    - mode is None or blank: clears an existing Mode to null; if there is
+      no Mode column, nothing is added (the profile stays Mode-less).
+
+    Returns True on success, False if mode is not a string/None or the
+    record index is out of range.
+    """
+    if mode is not None and not isinstance(mode, str):
+        logger.warning("gemini_profiles_set_mode: mode must be a string or None")
+        return False
+    clean = mode.strip() if isinstance(mode, str) else None
+    clean = clean or None
+
+    values = profile.get("Values", [])
+    if record_index >= len(values):
+        logger.warning("gemini_profiles_set_mode: record %d out of range", record_index)
+        return False
+
+    fm = gemini_profiles_get_field_map(profile)
+    if PROFILE_MODE_FIELD not in fm:
+        if clean is None:
+            return True  # nothing to clear, nothing to add
+        profile.setdefault("Fields", []).append(dict(OPTIONAL_PROFILE_FIELDS[0]))
+        for row in values:
+            row.append(None)
+        # The Core field-map cache is injected into the doc; the Fields
+        # array just changed, so drop the stale copy and rebuild it.
+        profile.pop("_bejson_field_map", None)
+        bejson_core_get_field_map(profile)
+    return gemini_profiles_update_value(profile, PROFILE_MODE_FIELD, clean, record_index)
 
 
 def gemini_profiles_save(profile: Dict[str, Any], path: str) -> None:

@@ -8,7 +8,7 @@ Description:    Integration wrapper for TokenRouter API endpoints (https://api.t
                  - TOKENROUTER_KEY_1..N (numbered slots)
                  - BEJSON fallback key file under config/
 
-Version:        1.0.0
+Version:        1.1.0
 Date:           2026-09-11
 Author:         Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator: Elton Boehnen
@@ -16,6 +16,7 @@ RELATIONAL_ID:  8d2e6f4a-1b3c-4d5e-9f7a-8b0c2d3e4f5a
 Release_Version: 300
 
 Changelog:
+  1.1.0 (2026-09-28) -- Root-caused a round-robin-key-rotation bug found in this project's audit: get_standard_prompter() built a brand-new TokenRouterStandardPrompter (and therefore a brand-new KeyRegistry, its rotation _idx reset to 0) on every single dispatch, since ai_dispatch.py calls it fresh per call. Round-robin existed in the class but never actually advanced past key #1 in practice. Cached after first call instead, matching the singleton pattern lib_bejson_AI_bejson_gemini.py's get_standard_api() already used correctly.
   1.0.0 - Initial creation. TokenRouter provider integration with self-healing
           versioned config, RoundRobinKeyRegistry, ModelRegistryBase,
           BejsonProfileBase, and OpenAICompatibleClient REST wrapper.
@@ -42,7 +43,7 @@ from lib_bejson_AI_ai_openai_compatible_base import OpenAICompatibleClient
 
 logger = logging.getLogger("lib_bejson_AI_bejson_tokenrouter")
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 TOKENROUTER_CONFIG_VERSION = 1
 
@@ -156,9 +157,19 @@ class TokenRouterStandardPrompter:
             return f"ERROR: {e}"
 
 
+_std_prompter_singleton = None
+
+
 def get_standard_prompter() -> TokenRouterStandardPrompter:
-    return TokenRouterStandardPrompter(
-        key_registry_path=str(CONFIG_DIR / "tokenrouter_keys.104a.bejson"),
-        model_registry_path=str(CONFIG_DIR / "tokenrouter_model_registry.104a.bejson"),
-        profile_path=str(CONFIG_DIR / "tokenrouter_standard_profile.bejson")
-    )
+    """Zero-config TokenRouterStandardPrompter, cached after first call --
+    see lib_bejson_AI_bejson_groq.py's get_standard_prompter() for why
+    this caching is the actual round-robin-key-rotation fix, not just an
+    optimization."""
+    global _std_prompter_singleton
+    if _std_prompter_singleton is None:
+        _std_prompter_singleton = TokenRouterStandardPrompter(
+            key_registry_path=str(CONFIG_DIR / "tokenrouter_keys.104a.bejson"),
+            model_registry_path=str(CONFIG_DIR / "tokenrouter_model_registry.104a.bejson"),
+            profile_path=str(CONFIG_DIR / "tokenrouter_standard_profile.bejson")
+        )
+    return _std_prompter_singleton

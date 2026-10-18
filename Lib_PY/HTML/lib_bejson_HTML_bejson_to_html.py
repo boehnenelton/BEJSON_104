@@ -16,7 +16,7 @@ import html as html_mod
 from datetime import datetime
 
 # Import components
-from lib_bejson_HTML_html3_body import html_card, html_brutal_table, html_subtabs, html_tab_content
+from .lib_bejson_HTML_html3_body import html_card, html_brutal_table, html_subtabs, html_tab_content
 
 def bejson_to_html_viewer(bejson_doc):
     """

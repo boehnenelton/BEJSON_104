@@ -7,14 +7,16 @@
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
  *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
  *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
- * Version:         2.2.4
+ * Version:         2.2.5
  * Release_Version: 300
- * Date:            2026-10-02
+ * Date:            2026-10-15
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
- * RELATIONAL_ID:   9185ec17-8a9a-4f59-85cd-a1b0e9f59ccf
+ * RELATIONAL_ID:   aa63b91d-24ca-4c34-831d-c05db5485899
  */
 
+import * as fs from "fs";
+import * as path from "path";
 import {
   BEJSONDocument,
   BEJSONField,
@@ -636,7 +638,7 @@ export function getDebugLog(manifestPath: string): MetaDebugRow[] {
     return (doc.Values ?? []).map((row: unknown[]) => {
       const out: Record<string, unknown> = {};
       for (const [k, i] of Object.entries(fm)) out[k] = row[i];
-      return out as MetaDebugRow;
+      return out as unknown as MetaDebugRow;
     });
   } catch { return []; }
 }

@@ -62,14 +62,7 @@
       "PY",
       "true",
       "Lib_PY/Core",
-      "Includes MFDB \u2014 MFDB is implemented as part of Core, not a separate family"
-    ],
-    [
-      "Core_Nesting",
-      "PY",
-      "true",
-      "Lib_PY/Core_Nesting",
-      ""
+      "Includes MFDB \u2014 MFDB is implemented as part of Core, not a separate family. Also includes the nesting modules (error codes 130-159, resolved through the Core errors file; no separate nesting errors file as of 2026-10-16), moved from the former Core_Nesting family 2026-10-14."
     ],
     [
       "Gaming",
@@ -111,14 +104,7 @@
       "JS",
       "true",
       "Lib_JS/Core",
-      "Includes MFDB \u2014 MFDB is implemented as part of Core, not a separate family"
-    ],
-    [
-      "Core_Nesting",
-      "JS",
-      "true",
-      "Lib_JS/Core_Nesting",
-      ""
+      "Includes MFDB \u2014 MFDB is implemented as part of Core, not a separate family. Also includes the nesting modules (error codes 130-159, resolved through the Core errors file; no separate nesting errors file as of 2026-10-16), moved from the former Core_Nesting family 2026-10-14."
     ],
     [
       "External",
@@ -153,14 +139,7 @@
       "TS",
       "true",
       "Lib_TS/Core",
-      "Codes live in lib_bejson_Core_bejson_types.ts (no separate errors.ts). Includes MFDB."
-    ],
-    [
-      "Core_Nesting",
-      "TS",
-      "true",
-      "Lib_TS/Core_Nesting",
-      ""
+      "Codes live in lib_bejson_Core_bejson_types.ts (no separate errors.ts). Includes MFDB. Also includes the nesting modules (error codes 130-159, resolved through the Core errors file; no separate nesting errors file as of 2026-10-16), moved from the former Core_Nesting family 2026-10-14."
     ],
     [
       "Gaming",
@@ -181,14 +160,7 @@
       "SH",
       "true",
       "Lib_SH/Core",
-      "Includes MFDB \u2014 MFDB is implemented as part of Core, not a separate family"
-    ],
-    [
-      "Core_Nesting",
-      "SH",
-      "true",
-      "Lib_SH/Core_Nesting",
-      ""
+      "Includes MFDB \u2014 MFDB is implemented as part of Core, not a separate family. Also includes the nesting modules (error codes 130-159, resolved through the Core errors file; no separate nesting errors file as of 2026-10-16), moved from the former Core_Nesting family 2026-10-14."
     ],
     [
       "ExpCMS",
@@ -231,6 +203,62 @@
       "true",
       "Lib_SH/Terminal_Menus",
       "Registered during 2026-08-15 registry-drift cleanup; error codes renumbered 200-206 -> 340-346 to resolve collision with AI (200-219)"
+    ],
+    [
+      "Lists",
+      "PY",
+      "true",
+      "Lib_PY/Lists",
+      "Hierarchical list validator (id/parent_id) + array-field homogeneity; split out of Core 2026-10-13. Own errors file, codes 480-499. Reuses Core validator/field map; no Core file edited."
+    ],
+    [
+      "Lists",
+      "JS",
+      "true",
+      "Lib_JS/Lists",
+      "Hierarchical list validator (id/parent_id) + array-field homogeneity; split out of Core 2026-10-13. Own errors file, codes 480-499. Reuses Core validator/field map; no Core file edited."
+    ],
+    [
+      "Lists",
+      "TS",
+      "true",
+      "Lib_TS/Lists",
+      "Hierarchical list validator (id/parent_id) + array-field homogeneity; split out of Core 2026-10-13. Own errors file, codes 480-499. Reuses Core validator/field map; no Core file edited."
+    ],
+    [
+      "Lists",
+      "SH",
+      "true",
+      "Lib_SH/Lists",
+      "Hierarchical list validator (id/parent_id) + array-field homogeneity; split out of Core 2026-10-13. Own errors file, codes 480-499. Reuses Core validator/field map; no Core file edited."
+    ],
+    [
+      "Animation",
+      "SH",
+      "false",
+      "Lib_SH/Animation",
+      "Terminal animation driver (frame-by-frame BEJSON 104a screens). No errors file. Registered 2026-10-14 (existed in tree, was missing from registry)."
+    ],
+    [
+      "Bookmaker",
+      "PY",
+      "true",
+      "Lib_PY/Bookmaker",
+      "Book writer core + validator over BEJSON; own errors file, codes 450-479. Registered 2026-10-14 (was missing from registry)."
+    ],
+    [
+      "Core_Extension",
+      "PY",
+      "true",
+      "Lib_PY/Core_Extension",
+      "Core-adjacent extension modules (first member: pagecache); own errors file, codes 160-189; see Lib_PY/Core_Extension/README.md. Registered 2026-10-14 (was missing from registry)."
+    ],
+    [
+      "Projects",
+      "PY",
+      "false",
+      "Lib_PY/Projects",
+      "Project manager library. No errors file. Registered 2026-10-14 (was missing from registry)."
     ]
   ]
 }

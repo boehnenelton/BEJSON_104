@@ -6,3 +6,7 @@ __pycache__/
 *.pyc
 *.tmp
 .DS_Store
+AGENTS.md
+dist/
+chunk/
+.bejson_project.json

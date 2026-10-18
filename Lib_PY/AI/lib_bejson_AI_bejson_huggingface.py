@@ -19,7 +19,7 @@ Description:    Hugging Face Inference Providers adapter (OpenAI-compatible
                  nscale, openai, ovhcloud, publicai, replicate, scaleway,
                  together, wavespeed, zai-org (source: huggingface_hub
                  InferenceClient docs).
-Version:        2.0.0
+Version:        2.1.0
 Date:           2026-08-22
 Author:         Elton Boehnen
 Contact:        eltonboehnen@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
@@ -28,6 +28,7 @@ RELATIONAL_ID:  aee9149e-5e05-4d8d-82f2-fb9ddaf0ae72
 Release_Version: 300
 
 Changelog:
+  2.1.0 (2026-09-28) -- Root-caused a round-robin-key-rotation bug found in this project's audit: get_standard_prompter() built a brand-new HuggingFaceStandardPrompter (and therefore a brand-new KeyRegistry, its rotation _idx reset to 0) on every single dispatch, since ai_dispatch.py calls it fresh per call. Round-robin existed in the class but never actually advanced past key #1 in practice. Cached after first call instead, matching the singleton pattern lib_bejson_AI_bejson_gemini.py's get_standard_api() already used correctly.
   2.0.0 - REPLACES the 1.0.0 stub entirely. That version had no model
           registry at all (one hardcoded, explicitly UNVERIFIED default
           model, "meta-llama/Llama-3.1-8B-Instruct:novita") and no
@@ -70,7 +71,7 @@ from lib_bejson_AI_ai_registry_base import (
 )
 from lib_bejson_AI_ai_openai_compatible_base import OpenAICompatibleClient
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 HF_BASE_URL = "https://router.huggingface.co/v1"
 HF_DEFAULT_MODEL = "openai/gpt-oss-120b"
@@ -227,5 +228,15 @@ STD_MODEL_PATH = CONFIG_DIR / "huggingface_model_registry.104a.bejson"
 STD_PROFILE_PATH = CONFIG_DIR / "huggingface_standard_profile.bejson"
 
 
+_std_prompter_singleton = None
+
+
 def get_standard_prompter():
-    return HuggingFaceStandardPrompter(STD_KEY_PATH, STD_MODEL_PATH, STD_PROFILE_PATH)
+    """Zero-config HuggingFaceStandardPrompter, cached after first call --
+    see lib_bejson_AI_bejson_groq.py's get_standard_prompter() for why
+    this caching is the actual round-robin-key-rotation fix, not just an
+    optimization."""
+    global _std_prompter_singleton
+    if _std_prompter_singleton is None:
+        _std_prompter_singleton = HuggingFaceStandardPrompter(STD_KEY_PATH, STD_MODEL_PATH, STD_PROFILE_PATH)
+    return _std_prompter_singleton

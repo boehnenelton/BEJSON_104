@@ -1,6 +1,6 @@
 # Core_Extension — family standard
 
-Core_Extension is a new sibling family to `Core` and `Core_Nesting`. This
+Core_Extension is a new sibling family to `Core` (which now includes the former `Core_Nesting` modules). This
 document is the standard every future Core_Extension module follows —
 written once, here, rather than re-explained per module.
 
@@ -15,7 +15,7 @@ written once, here, rather than re-explained per module.
   and never reach into Core's internals. If it needs Core to change to
   work, it doesn't belong here — it's either a Core change (rare, deliberate)
   or its own family.
-- **Its own family** (like `Core_Nesting`, `Cognition`) is for something
+- **Its own family** (like `Cognition`) is for something
   substantial and domain-specific enough to deserve its own name and
   identity, not just "another thing Core-adjacent."
 
@@ -30,11 +30,11 @@ and doesn't touch anything Core doesn't already expose publicly.
   `Lib_JS/Core_Extension/`, `Lib_TS/Core_Extension/`, `Lib_SH/Core_Extension/`).
 - **File naming**: `lib_bejson_CoreExtension_{module_name}.py` — family
   name in the filename is PascalCase-no-underscore (`CoreExtension`),
-  matching `CoreNesting`, `BEHTMLIDE`, etc.
+  matching `BEHTMLIDE`, etc.
 - **Own error registry**: every family owns its own error codes in
   `lib_bejson_CoreExtension_bejson_errors.py`, never borrowed from Core's.
   Core_Extension's reserved range is **160-189** (claimed 2026-08-09,
-  immediately after Core_Nesting's 130-159, keeping the Core-adjacent
+  immediately after the nesting range's 130-159, keeping the Core-adjacent
   families clustered). Sub-allocate within that range per module as they're
   added — `bejson_pagecache` took 160-179, next module starts at 180.
 - **Headers**: every file carries the same header block every other family

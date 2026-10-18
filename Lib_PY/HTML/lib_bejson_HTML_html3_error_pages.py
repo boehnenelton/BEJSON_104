@@ -11,7 +11,7 @@ Format_Creator:  Elton Boehnen
 RELATIONAL_ID:   b74d3196-e67a-4b16-9628-aedb93ed302f
 """
 
-from lib_bejson_HTML_html3_page_templates import html_page
+from .lib_bejson_HTML_html3_page_templates import html_page
 
 VERSION = "3.0.0"
 SCRIPT_NAME = "lib_bejson_HTML_html3_error_pages.py"

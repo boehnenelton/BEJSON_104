@@ -1544,282 +1544,282 @@
     [
       130,
       "E_NESTING_INVALID_CELL",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       131,
       "E_NESTING_NOT_BEJSON",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       132,
       "E_NESTING_DEPTH_EXCEEDED",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       133,
       "E_NESTING_CACHE_MISS",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       134,
       "E_NESTING_SCHEMA_MISMATCH",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       135,
       "E_NESTING_CIRCULAR_REF",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       136,
       "E_NESTING_VALIDATION_FAILED",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       137,
       "E_NESTING_FIELD_MAP_FAILED",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       138,
       "E_NESTING_QUERY_INVALID_PATH",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       139,
       "E_NESTING_QUERY_EMPTY_PATH",
-      "Core_Nesting",
+      "Core",
       "PY",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       130,
       "E_NESTING_INVALID_CELL",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       131,
       "E_NESTING_NOT_BEJSON",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       132,
       "E_NESTING_DEPTH_EXCEEDED",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       133,
       "E_NESTING_CACHE_MISS",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       134,
       "E_NESTING_SCHEMA_MISMATCH",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       135,
       "E_NESTING_CIRCULAR_REF",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       136,
       "E_NESTING_VALIDATION_FAILED",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       137,
       "E_NESTING_FIELD_MAP_FAILED",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       138,
       "E_NESTING_QUERY_INVALID_PATH",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       139,
       "E_NESTING_QUERY_EMPTY_PATH",
-      "Core_Nesting",
+      "Core",
       "JS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       130,
       "E_NESTING_INVALID_CELL",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       131,
       "E_NESTING_NOT_BEJSON",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       132,
       "E_NESTING_DEPTH_EXCEEDED",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       133,
       "E_NESTING_CACHE_MISS",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       134,
       "E_NESTING_SCHEMA_MISMATCH",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       135,
       "E_NESTING_CIRCULAR_REF",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       136,
       "E_NESTING_VALIDATION_FAILED",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       137,
       "E_NESTING_FIELD_MAP_FAILED",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       138,
       "E_NESTING_QUERY_INVALID_PATH",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       139,
       "E_NESTING_QUERY_EMPTY_PATH",
-      "Core_Nesting",
+      "Core",
       "TS",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       130,
       "E_NESTING_INVALID_CELL",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       131,
       "E_NESTING_NOT_BEJSON",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       132,
       "E_NESTING_DEPTH_EXCEEDED",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       133,
       "E_NESTING_CACHE_MISS",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       134,
       "E_NESTING_SCHEMA_MISMATCH",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       135,
       "E_NESTING_CIRCULAR_REF",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       136,
       "E_NESTING_VALIDATION_FAILED",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       137,
       "E_NESTING_FIELD_MAP_FAILED",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       138,
       "E_NESTING_QUERY_INVALID_PATH",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       139,
       "E_NESTING_QUERY_EMPTY_PATH",
-      "Core_Nesting",
+      "Core",
       "SH",
-      "Core_Nesting"
+      "Core Nesting"
     ],
     [
       270,
@@ -2256,53 +2256,606 @@
       "Diagrams MFDB/Validation"
     ],
     [
-      340,
+      360,
       "E_TM_JQ_NOT_FOUND",
       "Terminal_Menus",
       "SH",
-      "Terminal Menus (renumbered from 200-206, was colliding with AI 200-219)"
+      "Terminal Menus (360-389; renumbered 200-206 -> 340-346 -> 360-366, was colliding with AI 200-219 / BEHTML_IDE)"
     ],
     [
-      341,
+      361,
       "E_TM_BEJSON_NOT_FOUND",
       "Terminal_Menus",
       "SH",
-      "Terminal Menus (renumbered from 200-206, was colliding with AI 200-219)"
+      "Terminal Menus (360-389; renumbered 200-206 -> 340-346 -> 360-366, was colliding with AI 200-219 / BEHTML_IDE)"
     ],
     [
-      342,
+      362,
       "E_TM_INVALID_MENU_SCHEMA",
       "Terminal_Menus",
       "SH",
-      "Terminal Menus (renumbered from 200-206, was colliding with AI 200-219)"
+      "Terminal Menus (360-389; renumbered 200-206 -> 340-346 -> 360-366, was colliding with AI 200-219 / BEHTML_IDE)"
     ],
     [
-      343,
+      363,
       "E_TM_NO_ENTRY_ADDRESS",
       "Terminal_Menus",
       "SH",
-      "Terminal Menus (renumbered from 200-206, was colliding with AI 200-219)"
+      "Terminal Menus (360-389; renumbered 200-206 -> 340-346 -> 360-366, was colliding with AI 200-219 / BEHTML_IDE)"
     ],
     [
-      344,
+      364,
       "E_TM_ADDRESS_NOT_FOUND",
       "Terminal_Menus",
       "SH",
-      "Terminal Menus (renumbered from 200-206, was colliding with AI 200-219)"
+      "Terminal Menus (360-389; renumbered 200-206 -> 340-346 -> 360-366, was colliding with AI 200-219 / BEHTML_IDE)"
     ],
     [
-      345,
+      365,
       "E_TM_COMPILE_WRITE_FAILED",
       "Terminal_Menus",
       "SH",
-      "Terminal Menus (renumbered from 200-206, was colliding with AI 200-219)"
+      "Terminal Menus (360-389; renumbered 200-206 -> 340-346 -> 360-366, was colliding with AI 200-219 / BEHTML_IDE)"
     ],
     [
-      346,
+      366,
       "E_TM_INVALID_POINTER",
       "Terminal_Menus",
       "SH",
-      "Terminal Menus (renumbered from 200-206, was colliding with AI 200-219)"
+      "Terminal Menus (360-389; renumbered 200-206 -> 340-346 -> 360-366, was colliding with AI 200-219 / BEHTML_IDE)"
+    ],
+    [
+      480,
+      "E_LISTS_STRUCTURE_INVALID",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      481,
+      "E_LISTS_INVALID_VERSION",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      482,
+      "E_LISTS_MISSING_FIELDS",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      483,
+      "E_LISTS_SHORT_ROW",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      484,
+      "E_LISTS_NULL_ID",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      485,
+      "E_LISTS_DUPLICATE_ID",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      486,
+      "E_LISTS_ORPHAN",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      487,
+      "E_LISTS_CYCLE",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      488,
+      "E_LISTS_FIELD_NOT_FOUND",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      489,
+      "E_LISTS_FIELD_NOT_ARRAY",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      490,
+      "E_LISTS_ITEM_TYPE_MISMATCH",
+      "Lists",
+      "PY",
+      "Lists"
+    ],
+    [
+      480,
+      "E_LISTS_STRUCTURE_INVALID",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      481,
+      "E_LISTS_INVALID_VERSION",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      482,
+      "E_LISTS_MISSING_FIELDS",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      483,
+      "E_LISTS_SHORT_ROW",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      484,
+      "E_LISTS_NULL_ID",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      485,
+      "E_LISTS_DUPLICATE_ID",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      486,
+      "E_LISTS_ORPHAN",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      487,
+      "E_LISTS_CYCLE",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      488,
+      "E_LISTS_FIELD_NOT_FOUND",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      489,
+      "E_LISTS_FIELD_NOT_ARRAY",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      490,
+      "E_LISTS_ITEM_TYPE_MISMATCH",
+      "Lists",
+      "JS",
+      "Lists"
+    ],
+    [
+      480,
+      "E_LISTS_STRUCTURE_INVALID",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      481,
+      "E_LISTS_INVALID_VERSION",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      482,
+      "E_LISTS_MISSING_FIELDS",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      483,
+      "E_LISTS_SHORT_ROW",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      484,
+      "E_LISTS_NULL_ID",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      485,
+      "E_LISTS_DUPLICATE_ID",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      486,
+      "E_LISTS_ORPHAN",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      487,
+      "E_LISTS_CYCLE",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      488,
+      "E_LISTS_FIELD_NOT_FOUND",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      489,
+      "E_LISTS_FIELD_NOT_ARRAY",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      490,
+      "E_LISTS_ITEM_TYPE_MISMATCH",
+      "Lists",
+      "TS",
+      "Lists"
+    ],
+    [
+      480,
+      "E_LISTS_STRUCTURE_INVALID",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      481,
+      "E_LISTS_INVALID_VERSION",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      482,
+      "E_LISTS_MISSING_FIELDS",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      483,
+      "E_LISTS_SHORT_ROW",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      484,
+      "E_LISTS_NULL_ID",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      485,
+      "E_LISTS_DUPLICATE_ID",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      486,
+      "E_LISTS_ORPHAN",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      487,
+      "E_LISTS_CYCLE",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      488,
+      "E_LISTS_FIELD_NOT_FOUND",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      489,
+      "E_LISTS_FIELD_NOT_ARRAY",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      490,
+      "E_LISTS_ITEM_TYPE_MISMATCH",
+      "Lists",
+      "SH",
+      "Lists"
+    ],
+    [
+      220,
+      "E_AI_TRANSCRIBE_MEDIA_NOT_FOUND",
+      "AI",
+      "PY",
+      "AI Transcribe (220-224)"
+    ],
+    [
+      221,
+      "E_AI_TRANSCRIBE_UNSUPPORTED_MEDIA",
+      "AI",
+      "PY",
+      "AI Transcribe (220-224)"
+    ],
+    [
+      222,
+      "E_AI_TRANSCRIBE_MEDIA_TOO_LARGE",
+      "AI",
+      "PY",
+      "AI Transcribe (220-224)"
+    ],
+    [
+      223,
+      "E_AI_TRANSCRIBE_CHUNKING_UNAVAILABLE",
+      "AI",
+      "PY",
+      "AI Transcribe (220-224)"
+    ],
+    [
+      224,
+      "E_AI_TRANSCRIBE_CHUNKING_FAILED",
+      "AI",
+      "PY",
+      "AI Transcribe (220-224)"
+    ],
+    [
+      230,
+      "E_AI_TTS_HTTP_ERROR",
+      "AI",
+      "PY",
+      "AI TTS (230-235)"
+    ],
+    [
+      231,
+      "E_AI_TTS_TIMEOUT",
+      "AI",
+      "PY",
+      "AI TTS (230-235)"
+    ],
+    [
+      232,
+      "E_AI_TTS_NO_AUDIO_RETURNED",
+      "AI",
+      "PY",
+      "AI TTS (230-235)"
+    ],
+    [
+      233,
+      "E_AI_TTS_INVALID_VOICE",
+      "AI",
+      "PY",
+      "AI TTS (230-235)"
+    ],
+    [
+      234,
+      "E_AI_TTS_MULTI_SPEAKER_LIMIT_EXCEEDED",
+      "AI",
+      "PY",
+      "AI TTS (230-235)"
+    ],
+    [
+      235,
+      "E_AI_TTS_UNSUPPORTED_CAPABILITY",
+      "AI",
+      "PY",
+      "AI TTS (230-235)"
+    ],
+    [
+      450,
+      "E_BOOKMAKER_CORE_VALIDATION_FAILED",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      451,
+      "E_BOOKMAKER_NOT_BOOK_RECORDS_TYPE",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      452,
+      "E_BOOKMAKER_MISSING_BOOK_ROW",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      453,
+      "E_BOOKMAKER_MISSING_BOOK_FIELD",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      454,
+      "E_BOOKMAKER_DUPLICATE_CHAPTER",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      455,
+      "E_BOOKMAKER_CHAPTER_GAP",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      456,
+      "E_BOOKMAKER_EMPTY_CHAPTER_CONTENT",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      457,
+      "E_BOOKMAKER_FILE_NOT_FOUND",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      458,
+      "E_BOOKMAKER_WRITE_FAILED",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      459,
+      "E_BOOKMAKER_PLAN_EMPTY",
+      "Bookmaker",
+      "PY",
+      "Bookmaker (450-479)"
+    ],
+    [
+      160,
+      "E_PAGECACHE_ENTITY_NOT_FOUND",
+      "Core_Extension",
+      "PY",
+      "Core_Extension / pagecache (160-189)"
+    ],
+    [
+      161,
+      "E_PAGECACHE_INVALID_PAGE_NUMBER",
+      "Core_Extension",
+      "PY",
+      "Core_Extension / pagecache (160-189)"
+    ],
+    [
+      162,
+      "E_PAGECACHE_INVALID_PAGE_SIZE",
+      "Core_Extension",
+      "PY",
+      "Core_Extension / pagecache (160-189)"
+    ],
+    [
+      163,
+      "E_PAGECACHE_MALFORMED_SOURCE",
+      "Core_Extension",
+      "PY",
+      "Core_Extension / pagecache (160-189)"
+    ],
+    [
+      164,
+      "E_PAGECACHE_STREAM_PARSE_FAILED",
+      "Core_Extension",
+      "PY",
+      "Core_Extension / pagecache (160-189)"
+    ],
+    [
+      165,
+      "E_PAGECACHE_WRITE_FAILED",
+      "Core_Extension",
+      "PY",
+      "Core_Extension / pagecache (160-189)"
+    ],
+    [
+      166,
+      "E_PAGECACHE_CACHE_DIR_UNWRITABLE",
+      "Core_Extension",
+      "PY",
+      "Core_Extension / pagecache (160-189)"
+    ],
+    [
+      420,
+      "E_DIAGRAMS_NOT_MFDB132_PACKAGE",
+      "Diagrams",
+      "PY",
+      "Diagrams MFDB132 Package"
+    ],
+    [
+      421,
+      "E_DIAGRAMS_MFDB132_INVALID",
+      "Diagrams",
+      "PY",
+      "Diagrams MFDB132 Package"
+    ],
+    [
+      431,
+      "E_DIAGRAMS_AI_EMPTY_PROMPT",
+      "Diagrams",
+      "PY",
+      "Diagrams AI"
+    ],
+    [
+      432,
+      "E_DIAGRAMS_AI_BAD_RESPONSE",
+      "Diagrams",
+      "PY",
+      "Diagrams AI"
+    ],
+    [
+      433,
+      "E_DIAGRAMS_AI_INVALID_PLAN",
+      "Diagrams",
+      "PY",
+      "Diagrams AI"
+    ],
+    [
+      434,
+      "E_DIAGRAMS_AI_PROVIDER_ERROR",
+      "Diagrams",
+      "PY",
+      "Diagrams AI"
+    ],
+    [
+      435,
+      "E_DIAGRAMS_AI_SEMANTIC_INVALID",
+      "Diagrams",
+      "PY",
+      "Diagrams AI"
     ]
   ]
 }

@@ -7,12 +7,17 @@
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
  *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
  *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
- * Version:         2.3.4
+ * Version:         2.5.0
  * Release_Version: 300
- * Date:            2026-10-02
+ * Date:            2026-10-16
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
- * RELATIONAL_ID:   e0c75578-0e42-407b-9b2c-a079377e1c33
+ * RELATIONAL_ID:   a7e075e5-65cd-4573-9294-4790726b37b9
+ * Changelog:
+ *   2.5.0 (2026-10-16) - Added the four MFDB Core codes missing versus the Python registry: E_MFDB_CORE_DUPLICATE_ENTITY_NAME (57), RECORD_COUNT_SYNC_FAILED (58), NULL_MANIFEST (59), ENTITY_NOT_IN_MANIFEST (60).
+ *           JS now has every code the Python Core registry has (66), same names and values.
+ *   2.4.0 (2026-10-16) - Added the Core nesting codes E_NESTING_* (130-139), moved here from the removed lib_bejson_Core_bejson_nesting_errors.js.
+ *           Core now resolves every error code through this single file. Codes, names and values unchanged.
  */
 
 const BEJSON_ERRORS = {
@@ -72,11 +77,26 @@ const BEJSON_ERRORS = {
     E_MFDB_CORE_INVALID_OPERATION: 54,
     E_MFDB_CORE_INDEX_OUT_OF_BOUNDS: 55,
     E_MFDB_CORE_JOIN_FAILED: 56,
+    E_MFDB_CORE_DUPLICATE_ENTITY_NAME: 57,
+    E_MFDB_CORE_RECORD_COUNT_SYNC_FAILED: 58,
+    E_MFDB_CORE_NULL_MANIFEST: 59,
+    E_MFDB_CORE_ENTITY_NOT_IN_MANIFEST: 60,
     E_MFDB_CORE_ARCHIVE_ERROR: 70,
     E_MFDB_CORE_MOUNT_CONFLICT: 71,
     E_MFDB_CORE_CREATE_FAILED: 72,
 
-    // Core_Nesting codes live in lib_bejson_CoreNesting_bejson_errors.js
+    // Core nesting (130-159) - nested BEJSON 104; part of Core, no separate errors file
+    E_NESTING_INVALID_CELL: 130,
+    E_NESTING_NOT_BEJSON: 131,
+    E_NESTING_DEPTH_EXCEEDED: 132,
+    E_NESTING_CACHE_MISS: 133,
+    E_NESTING_SCHEMA_MISMATCH: 134,
+    E_NESTING_CIRCULAR_REF: 135,
+    E_NESTING_VALIDATION_FAILED: 136,
+    E_NESTING_FIELD_MAP_FAILED: 137,
+    E_NESTING_QUERY_INVALID_PATH: 138,
+    E_NESTING_QUERY_EMPTY_PATH: 139,
+    // 140-159 reserved for future Core nesting codes.
 };
 
 if (typeof module !== 'undefined' && module.exports) {

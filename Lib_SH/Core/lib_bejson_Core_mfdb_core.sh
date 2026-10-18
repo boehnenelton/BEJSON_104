@@ -7,12 +7,12 @@
 # Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
 #                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
 #                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-# Version:         2.2.4
+# Version:         2.2.5
 # Release_Version: 300
-# Date:            2026-10-02
+# Date:            2026-10-16
 # Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 # Format_Creator:  Elton Boehnen
-# RELATIONAL_ID:   4c4f58ce-b1ed-44fe-b5ed-03fee47e10cd
+# RELATIONAL_ID:   4aa4dee4-b170-4f9f-882e-ca4b897027ee
 # -----------------------------------------------------------------------------
 
 set -o pipefail
@@ -378,6 +378,9 @@ mfdb_core_add_entity_record() {
     fi
     mv "$tmp_file" "$resolved"
     mfdb_core_sync_manifest_count "$manifest_path" "$entity_name"
+    local sync_rc=$?
+    _mfdb_meta_log "$manifest_path" "ADD_RECORD" "$entity_name" "-" "-" "-" 1 0 ""
+    return $sync_rc
 }
 
 # Removes a row from an entity file, then syncs the manifest record_count.
@@ -412,6 +415,9 @@ mfdb_core_remove_entity_record() {
     fi
     mv "$tmp_file" "$resolved"
     mfdb_core_sync_manifest_count "$manifest_path" "$entity_name"
+    local sync_rc=$?
+    _mfdb_meta_log "$manifest_path" "REMOVE_RECORD" "$entity_name" "-" "-" "$record_index" 1 0 ""
+    return $sync_rc
 }
 
 #-------------------------------------------------------------------------------
@@ -892,10 +898,9 @@ _mfdb_debug_schema_snapshot() {
     local manifest_path="$1"
     local meta_name="$2"
 
-    local entities_json
-    entities_json=$(mfdb_core_list_entities "$manifest_path" 2>/dev/null)
-
-    echo "$entities_json" | jq -r '.[]' 2>/dev/null | while IFS= read -r ename; do
+    # mfdb_core_list_entities prints one name per line (plain text). Before 2.2.5 this piped it through
+    # jq '.[]', which fails on plain text, so no SCHEMA_SNAPSHOT row was ever written.
+    mfdb_core_list_entities "$manifest_path" 2>/dev/null | while IFS= read -r ename; do
         [[ -z "$ename" || "$ename" == "$meta_name" ]] && continue
         local entity_path
         entity_path=$(_mfdb_debug_get_entity_path "$manifest_path" "$ename") || continue

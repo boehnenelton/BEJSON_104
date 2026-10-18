@@ -7,12 +7,17 @@
 # Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
 #                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
 #                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-# Version:         1.5.2
+# Version:         1.7.0
 # Release_Version: 300
-# Date:            2026-10-02
+# Date:            2026-10-16
 # Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 # Format_Creator:  Elton Boehnen
-# RELATIONAL_ID:   6057cff4-bfdc-4750-9d3a-6fd5abeab7ac
+# RELATIONAL_ID:   21a3adb9-7d03-4fd1-ba06-161643594e88
+# Changelog:
+#   1.7.0 (2026-10-16) - Added the seven Core codes missing versus the Python registry: E_CORE_PARSE_ERROR (17), SERIALIZATION_ERROR (18), NULL_DOCUMENT (19), E_MFDB_CORE_DUPLICATE_ENTITY_NAME (57), RECORD_COUNT_SYNC_FAILED (58), NULL_MANIFEST (59), ENTITY_NOT_IN_MANIFEST (60).
+#           Bash now has every code the Python Core registry has (66), same names and values.
+#   1.6.0 (2026-10-16) - Added the Core nesting codes E_NESTING_* (130-139), moved here from the removed lib_bejson_Core_bejson_nesting_errors.sh.
+#           Core now resolves every error code through this single file. Codes, names and values unchanged.
 # -----------------------------------------------------------------------------
 
 [[ -v E_INVALID_JSON                ]] || readonly E_INVALID_JSON=1
@@ -31,6 +36,9 @@
 [[ -v E_PERMISSION_DENIED           ]] || readonly E_PERMISSION_DENIED=14
 [[ -v E_ATOMIC_WRITE_FAILED         ]] || readonly E_ATOMIC_WRITE_FAILED=15
 [[ -v E_INVALID_FORMAT_CREATOR      ]] || readonly E_INVALID_FORMAT_CREATOR=16
+[[ -v E_CORE_PARSE_ERROR         ]] || readonly E_CORE_PARSE_ERROR=17
+[[ -v E_CORE_SERIALIZATION_ERROR ]] || readonly E_CORE_SERIALIZATION_ERROR=18
+[[ -v E_CORE_NULL_DOCUMENT       ]] || readonly E_CORE_NULL_DOCUMENT=19
 
 # ===========================================================================
 # BEJSON CORE ERRORS (20–29)
@@ -74,9 +82,27 @@
 [[ -v E_MFDB_CORE_INVALID_OPERATION ]] || readonly E_MFDB_CORE_INVALID_OPERATION=54
 [[ -v E_MFDB_CORE_INDEX_OUT_OF_BOUNDS ]] || readonly E_MFDB_CORE_INDEX_OUT_OF_BOUNDS=55
 [[ -v E_MFDB_CORE_JOIN_FAILED       ]] || readonly E_MFDB_CORE_JOIN_FAILED=56
+[[ -v E_MFDB_CORE_DUPLICATE_ENTITY_NAME    ]] || readonly E_MFDB_CORE_DUPLICATE_ENTITY_NAME=57
+[[ -v E_MFDB_CORE_RECORD_COUNT_SYNC_FAILED ]] || readonly E_MFDB_CORE_RECORD_COUNT_SYNC_FAILED=58
+[[ -v E_MFDB_CORE_NULL_MANIFEST            ]] || readonly E_MFDB_CORE_NULL_MANIFEST=59
+[[ -v E_MFDB_CORE_ENTITY_NOT_IN_MANIFEST   ]] || readonly E_MFDB_CORE_ENTITY_NOT_IN_MANIFEST=60
 [[ -v E_MFDB_CORE_ARCHIVE_ERROR     ]] || readonly E_MFDB_CORE_ARCHIVE_ERROR=70
 [[ -v E_MFDB_CORE_MOUNT_CONFLICT    ]] || readonly E_MFDB_CORE_MOUNT_CONFLICT=71
 [[ -v E_MFDB_CORE_CREATE_FAILED     ]] || readonly E_MFDB_CORE_CREATE_FAILED=72
 
 
-# Core_Nesting codes moved to lib_bejson_CoreNesting_bejson_errors.sh (v1.4.0)
+# ===========================================================================
+# CORE NESTING ERRORS (130-159) - nested BEJSON 104; part of Core, no separate errors file
+# ===========================================================================
+[[ -v E_NESTING_INVALID_CELL       ]] || readonly E_NESTING_INVALID_CELL=130
+[[ -v E_NESTING_NOT_BEJSON         ]] || readonly E_NESTING_NOT_BEJSON=131
+[[ -v E_NESTING_DEPTH_EXCEEDED     ]] || readonly E_NESTING_DEPTH_EXCEEDED=132
+[[ -v E_NESTING_CACHE_MISS         ]] || readonly E_NESTING_CACHE_MISS=133
+[[ -v E_NESTING_SCHEMA_MISMATCH    ]] || readonly E_NESTING_SCHEMA_MISMATCH=134
+[[ -v E_NESTING_CIRCULAR_REF       ]] || readonly E_NESTING_CIRCULAR_REF=135
+[[ -v E_NESTING_VALIDATION_FAILED  ]] || readonly E_NESTING_VALIDATION_FAILED=136
+[[ -v E_NESTING_FIELD_MAP_FAILED   ]] || readonly E_NESTING_FIELD_MAP_FAILED=137
+[[ -v E_NESTING_QUERY_INVALID_PATH ]] || readonly E_NESTING_QUERY_INVALID_PATH=138
+[[ -v E_NESTING_QUERY_EMPTY_PATH   ]] || readonly E_NESTING_QUERY_EMPTY_PATH=139
+
+# 140-159 reserved for future Core nesting codes.

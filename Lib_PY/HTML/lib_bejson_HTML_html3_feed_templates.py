@@ -40,7 +40,7 @@ def html_card_grid(cards, title="Cards", nav_links=None, dark=False):
     
     if nav_links is not None:
         header_html = f'<header class="c-page-header"><h1>{html_mod.escape(title)}</h1></header>'
-        from lib_bejson_HTML_html3_page_templates import html_page
+        from .lib_bejson_HTML_html3_page_templates import html_page
         return html_page(title, header_html + cards_html, nav_links=nav_links, dark=dark)
         
     return cards_html
@@ -89,7 +89,7 @@ def html_feed(entries, title="Feed", nav_links=None, dark=False,
     </section>"""
     
     if nav_links is not None:
-        from lib_bejson_HTML_html3_page_templates import html_page
+        from .lib_bejson_HTML_html3_page_templates import html_page
         return html_page(title, feed_body, nav_links=nav_links, dark=dark, site_url=site_url, active_url=active_url)
         
     return feed_body

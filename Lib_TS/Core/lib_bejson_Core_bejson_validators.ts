@@ -7,12 +7,12 @@
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
  *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
  *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
- * Version:         2.0.4
+ * Version:         2.0.6
  * Release_Version: 300
- * Date:            2026-10-02
+ * Date:            2026-10-16
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
- * RELATIONAL_ID:   db3e56b7-30c9-41e0-9d82-9e58e6cc66b9
+ * RELATIONAL_ID:   17fafcf6-5c1d-4ba4-a11a-c92223f26ebf
  */
 
 import {
@@ -35,6 +35,36 @@ import {
 /**
  * Dispatches on Format_Version to validate104 / validate104a / validate104db. Structure rules only; MFDB rules are in mfdb_validators.
  */
+const FIELD_MAP_KEY = "_bejson_field_map";
+/** Other in-memory caches. validateDocument takes live objects, so these are the only `_` keys accepted; any other `_` key is rejected. */
+const IN_MEMORY_ONLY_KEYS: ReadonlySet<string> = new Set(["_nestingFieldMap"]);
+
+/**
+ * The field-map cache is an in-memory artifact. This validator receives parsed objects (it cannot tell whether
+ * the object came from disk), so it accepts the key only when it equals the map derived from Fields (harmless,
+ * because the cache guard rebuilds anything it did not build itself) and rejects any other value as forged.
+ */
+function _checkFieldMapCache(d: Record<string, unknown>, r: ValidationResult): void {
+  if (!(FIELD_MAP_KEY in d)) return;
+  const cached = d[FIELD_MAP_KEY];
+  const fields = Array.isArray(d.Fields) ? (d.Fields as Array<{ name?: unknown }>) : [];
+  const ok = cached !== null && typeof cached === "object" && !Array.isArray(cached)
+    && Object.keys(cached as object).length === fields.length
+    && fields.every((f, i) => !!f && (cached as Record<string, unknown>)[String(f.name)] === i);
+  if (!ok) {
+    _err(r, E.RESERVED_KEY_COLLISION, "In-memory \"" + FIELD_MAP_KEY + "\" does not match Fields (stale or forged).", FIELD_MAP_KEY);
+  }
+}
+
+/** Any `_`-prefixed top-level key other than the verified field map and the known in-memory caches is reserved and rejected (all versions). */
+function _checkReservedKeys(d: Record<string, unknown>, r: ValidationResult): void {
+  for (const key of Object.keys(d)) {
+    if (key.startsWith("_") && key !== FIELD_MAP_KEY && !IN_MEMORY_ONLY_KEYS.has(key)) {
+      _err(r, E.RESERVED_KEY_COLLISION, "Key \"" + key + "\" uses the reserved \"_\" prefix.", key);
+    }
+  }
+}
+
 export function validateDocument(doc: unknown): ValidationResult {
   const result = _makeResult();
 
@@ -49,6 +79,8 @@ export function validateDocument(doc: unknown): ValidationResult {
   // Step 2: mandatory keys
   _checkMandatoryKeys(d, result);
   if (!result.valid) return result; // can't proceed without the six keys
+  _checkFieldMapCache(d, result);
+  _checkReservedKeys(d, result);
 
   const bej = doc as BEJSONDocument;
 
@@ -288,7 +320,7 @@ function _check104Specific(doc: BEJSONDocument, r: ValidationResult): void {
 
   // No custom top-level keys (Parent_Hierarchy is the only exception)
   for (const key of Object.keys(doc)) {
-    if (!FORBIDDEN_CUSTOM_KEYS_104.has(key as typeof MANDATORY_KEYS[number]) && key !== "Parent_Hierarchy") {
+    if (!FORBIDDEN_CUSTOM_KEYS_104.has(key as typeof MANDATORY_KEYS[number]) && key !== "Parent_Hierarchy" && !key.startsWith("_")) {
       _err(r, E.FORBIDDEN_CUSTOM_KEY, "BEJSON 104 forbids custom top-level key: \"" + key + "\".", key);
     }
   }
@@ -329,6 +361,7 @@ function _check104aSpecific(doc: BEJSONDocument, r: ValidationResult): void {
   // Custom keys: must be PascalCase, must not collide with mandatory keys
   for (const key of Object.keys(doc)) {
     if (FORBIDDEN_CUSTOM_KEYS_104.has(key as typeof MANDATORY_KEYS[number])) continue;
+    if (key.startsWith("_")) continue; // checked by _checkFieldMapCache / _checkReservedKeys
     if (key === "Parent_Hierarchy") {
       // Parent_Hierarchy is not defined for 104a but not strictly forbidden;
       // emit a warning rather than an error since the spec is silent here.
@@ -357,7 +390,7 @@ function _check104dbSpecific(doc: BEJSONDocument, r: ValidationResult): void {
 
   // No custom top-level keys (not even Parent_Hierarchy)
   for (const key of Object.keys(doc)) {
-    if (!FORBIDDEN_CUSTOM_KEYS_104.has(key as typeof MANDATORY_KEYS[number])) {
+    if (!FORBIDDEN_CUSTOM_KEYS_104.has(key as typeof MANDATORY_KEYS[number]) && !key.startsWith("_")) {
       _err(r, E.FORBIDDEN_CUSTOM_KEY, "BEJSON 104db forbids custom top-level key: \"" + key + "\".", key);
     }
   }

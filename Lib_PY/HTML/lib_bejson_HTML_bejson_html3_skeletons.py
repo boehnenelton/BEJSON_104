@@ -64,7 +64,7 @@ BRUTAL_COLOR = {
 
 # Import component CSS
 try:
-    from lib_bejson_HTML_bejson_html3_component_css import COMPONENT_CSS
+    from .lib_bejson_HTML_bejson_html3_component_css import COMPONENT_CSS
 except ImportError:
     COMPONENT_CSS = ""
 

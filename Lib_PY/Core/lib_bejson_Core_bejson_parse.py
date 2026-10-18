@@ -1,22 +1,26 @@
 """
-Library:         lib_bejson_Core_bejson_parse.py
-Family:          Core
-Module Purpose:  Tolerant JSON extraction from raw text and project-file extraction/saving from a parsed BEJSON document.
-Architecture:    Format-level BEJSON layer that works on any BEJSON document (104, 104a, 104db) through positional Fields/Values and the field-map cache. It does not orchestrate MFDB and is not specific to 104db.
-Format_Scope:    104 | 104a | 104db (generic)
-Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
-                 (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
-                 (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-Version:         2.1.4
+Library:        lib_bejson_Core_bejson_parse.py
+Family:         Core
+Description:    Rapid indexing and retrieval engine for dense tabular data.
+Version:        2.1.2
+Date:           2026-10-09
+Author:         Elton Boehnen
+Contact:        eltonboehnen@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
+Format_Creator: Elton Boehnen
+RELATIONAL_ID:  affd461f-b009-44c4-93bc-380e3f557004
 Release_Version: 300
-Date:            2026-10-02
-Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
-Format_Creator:  Elton Boehnen
-RELATIONAL_ID:   97a21bc4-8933-4d94-92b0-9bf36d2aeb94
+
+Changelog:
+  2.1.1 - AUDIT FIX (best-practices sweep): replaced print() with
+          logging.warning() for the backup-copy exception handler --
+          policy 7.3 forbids print() for logging; this one ran inside
+          real library logic (not a __main__ guard) so it was a genuine
+          violation, not a demo message.
 """
 
 import datetime
 import json
+import logging
 import os
 import shutil
 import tempfile
@@ -46,7 +50,6 @@ DEFAULT_OUT  = os.path.join(_SCRIPT_DIR, "output")
 # ATOMIC WRITE HELPER
 # ------------------------------------------------------------------
 
-# Writes text to a file atomically (temp file + fsync + rename).
 def _atomic_write_text(file_path: str, content: str) -> None:
     """Write text to file_path atomically with fsync."""
     path = Path(file_path)
@@ -75,19 +78,22 @@ def _atomic_write_text(file_path: str, content: str) -> None:
 # PARSER CORE (Best Practices - No Regex)
 # ------------------------------------------------------------------
 
-# Extracts and parses a JSON object from raw text using string methods and json; returns None if no JSON can be recovered.
 def parse_json(text):
     """Extract and parse JSON using strictly string methods and json module."""
     try:
         return json.loads(text)
     except json.JSONDecodeError:
+        # Zero-copy extraction: raw_decode parses in place from the first "{"
+        # instead of materialising a multi-megabyte text[start:end+1] copy.
         start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return json.loads(text[start:end+1])
+        if start != -1:
+            try:
+                obj, _end = json.JSONDecoder().raw_decode(text, start)
+                return obj
+            except json.JSONDecodeError:
+                pass
         raise
 
-# Reads a project-style BEJSON document (Fields/Values) and returns the project metadata plus the file rows as dicts.
 def extract_data(data):
     fields = data.get("Fields", [])
     values = data.get("Values", [])
@@ -101,7 +107,6 @@ def extract_data(data):
         key = "".join([c for c in name if c.isalnum()])
         f_map[key] = i
 
-    # Nested helper: value of one named field in a row via the field map (None when absent).
     def get_val(row, key):
         idx = f_map.get(key)
         if idx is not None and idx < len(row):
@@ -137,7 +142,6 @@ def extract_data(data):
 
 from lib_bejson_Core_bejson_path_guard import bejson_safe_join
 
-# Writes the extracted project files under the configured output path, with a boundary check on every relative path.
 def save_files(proj, files, cfg):
     base_dir = cfg.get("output_path") or DEFAULT_OUT
     if not os.path.isdir(base_dir):
@@ -157,18 +161,18 @@ def save_files(proj, files, cfg):
             try:
                 shutil.copytree(target, bak_target)
             except Exception as e:
-                print("Backup warning: " + str(e))
+                logging.warning(f"[Parse] Backup warning: {e}")
     else:
         ts     = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         target = os.path.join(base_dir, ts + "_" + proj)
 
     try:
-        # Resolve and guard target path
+        # Phase 2: Resolve and Guard target path
         target = os.path.abspath(target)
         os.makedirs(target, exist_ok=True)
 
         for f in files:
-            # Assert boundary prefixes via safe_join
+            # Phase 2: Assert boundary prefixes via safe_join
             fpath = bejson_safe_join(target, f["name"])
             _atomic_write_text(fpath, f["content"])
 

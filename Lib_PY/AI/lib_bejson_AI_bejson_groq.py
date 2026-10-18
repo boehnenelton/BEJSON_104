@@ -2,7 +2,7 @@
 Library:        lib_bejson_AI_bejson_groq.py
 Family:         AI
 Description:    Integration wrapper for Groq API services.
-Version:        3.0.0
+Version:        3.1.0
 Date:           2026-08-22
 Author:         Elton Boehnen
 Contact:        eltonboehnen@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
@@ -11,6 +11,7 @@ RELATIONAL_ID:  7d3e9f42-1b6c-4a58-8e0d-9f2c5a7b3e14
 Release_Version: 300
 
 Changelog:
+  3.1.0 (2026-09-28) -- Root-caused a round-robin-key-rotation bug found in this project's audit: get_standard_prompter() built a brand-new GroqStandardPrompter (and therefore a brand-new KeyRegistry, its rotation _idx reset to 0) on every single dispatch, since ai_dispatch.py calls it fresh per call. Round-robin existed in the class but never actually advanced past key #1 in practice. Cached after first call instead, matching the singleton pattern lib_bejson_AI_bejson_gemini.py's get_standard_api() already used correctly.
   3.0.0 - REGISTRY OVERHAUL, per Elton's direct instruction to fix the
           whole registry system, make every AI-family library self-
           contained, and stop hesitating. Replaces the 2.1.10 one-off fix
@@ -85,7 +86,7 @@ from lib_bejson_AI_ai_registry_base import (
     get_self_contained_dir,
 )
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 
 # Config_Version for this provider's model registry -- bump this whenever
 # the default model list below changes (e.g. Groq deprecates a model
@@ -241,5 +242,24 @@ STD_KEY_PATH = CONFIG_DIR / "groq_keys.104a.bejson"
 STD_MODEL_PATH = CONFIG_DIR / "groq_model_registry.104a.bejson"
 STD_PROFILE_PATH = CONFIG_DIR / "groq_standard_profile.bejson"
 
+_std_prompter_singleton = None
+
+
 def get_standard_prompter():
-    return GroqStandardPrompter(STD_KEY_PATH, STD_MODEL_PATH, STD_PROFILE_PATH)
+    """
+    Zero-config GroqStandardPrompter, cached after first call. This
+    caching is the actual fix for the round-robin key bug found in this
+    project's audit: GroqStandardPrompter's KeyRegistry rotates via an
+    internal _idx counter, but that counter only persists if the SAME
+    registry instance is reused across calls. Before this fix,
+    get_standard_prompter() built a brand-new prompter (and therefore a
+    brand-new KeyRegistry, _idx reset to 0) on every single dispatch --
+    round-robin existed in the class but never executed in practice, since
+    ai_dispatch.py calls get_standard_prompter() fresh on every call. Now
+    matches the singleton pattern lib_bejson_AI_bejson_gemini.py's
+    get_standard_api() already used correctly.
+    """
+    global _std_prompter_singleton
+    if _std_prompter_singleton is None:
+        _std_prompter_singleton = GroqStandardPrompter(STD_KEY_PATH, STD_MODEL_PATH, STD_PROFILE_PATH)
+    return _std_prompter_singleton

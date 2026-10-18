@@ -2,7 +2,7 @@
 Library:        lib_bejson_AI_bejson_openrouter.py
 Family:         AI
 Description:    Multi-model routing gateway for AI interactions.
-Version:        3.1.0
+Version:        3.2.0
 Date:           2026-09-07
 Author:         Elton Boehnen
 Contact:        eltonboehnen@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
@@ -11,6 +11,7 @@ RELATIONAL_ID:  1f4c8b73-6d2a-4e91-9c5f-3a7d0e8b4c26
 Release_Version: 300
 
 Changelog:
+  3.2.0 (2026-09-28) -- Root-caused a round-robin-key-rotation bug found in this project's audit: get_standard_prompter() built a brand-new OpenRouterStandardPrompter (and therefore a brand-new KeyRegistry, its rotation _idx reset to 0) on every single dispatch, since ai_dispatch.py calls it fresh per call. Round-robin existed in the class but never actually advanced past key #1 in practice. Cached after first call instead, matching the singleton pattern lib_bejson_AI_bejson_gemini.py's get_standard_api() already used correctly.
   3.1.0 (2026-09-07) -- Ported the flag/service schema migration from
           libraries_104's copy of this file (that repo's 3.1.0/3.1.1,
           2026-09-06) into this project, per Elton's confirmation. Appended
@@ -115,7 +116,7 @@ CORE_DIR = os.path.join(os.path.dirname(LIB_DIR), "Core")
 if CORE_DIR not in sys.path:
     sys.path.append(CORE_DIR)
 
-VERSION = "3.1.0"
+VERSION = "3.2.0"
 
 # Config_Version for this provider's stores -- bump whenever a default
 # schema below changes; any on-disk file with no Config_Version, or one
@@ -439,5 +440,15 @@ STD_KEY_PATH = CONFIG_DIR / "openrouter_keys.104a.bejson"
 STD_MODEL_PATH = CONFIG_DIR / "openrouter_model_registry.104a.bejson"
 STD_PROFILE_PATH = CONFIG_DIR / "openrouter_standard_profile.bejson"
 
+_std_prompter_singleton = None
+
+
 def get_standard_prompter():
-    return OpenRouterStandardPrompter(STD_KEY_PATH, STD_MODEL_PATH, STD_PROFILE_PATH)
+    """Zero-config OpenRouterStandardPrompter, cached after first call --
+    see lib_bejson_AI_bejson_groq.py's get_standard_prompter() for why
+    this caching is the actual round-robin-key-rotation fix, not just an
+    optimization."""
+    global _std_prompter_singleton
+    if _std_prompter_singleton is None:
+        _std_prompter_singleton = OpenRouterStandardPrompter(STD_KEY_PATH, STD_MODEL_PATH, STD_PROFILE_PATH)
+    return _std_prompter_singleton

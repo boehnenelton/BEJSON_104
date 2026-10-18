@@ -8,7 +8,7 @@
   "Schema_Version": "2.6.1",
   "Author": "Elton Boehnen",
   "Created_At": "2026-07-18T06:45:04Z",
-  "Modified_At": "2026-08-15T22:57:07Z",
+  "Modified_At": "2026-10-16T18:00:00Z",
   "Network_Role": "Master",
   "Records_Type": [
     "mfdb"
@@ -44,7 +44,7 @@
       "Errors",
       "data/errors.bejson",
       "Global cross-family error code map (read-only aggregate; each family's own errors file is the source of truth)",
-      325,
+      404,
       "2.2",
       null
     ],
@@ -52,7 +52,7 @@
       "Metadata",
       "data/metadata.bejson",
       "Library versioning AND governance rules hub (EAV-style: RECORD_TYPE is VERSION or RULE), keyed by LIBRARY_FAMILY + LANGUAGE + KEY. Includes the Core-parity, MFDB-is-part-of-Core, BEJSON acronym, and PMS-deprecation rules.",
-      29,
+      25,
       "3.3",
       null
     ],
@@ -60,15 +60,15 @@
       "Library_Changes",
       "data/library_changes.bejson",
       "Library change log, keyed by LIBRARY_FAMILY + LANGUAGE + LIBRARY_FILE",
-      65,
+      127,
       "2.2",
       null
     ],
     [
       "Families",
       "data/families.bejson",
-      "Registry of every family x language combo and whether it has an owned error registry file \u2014 feeds the Reports dropdown and future CLI tooling",
-      29,
+      "Registry of every family x language combo and whether it has an owned error registry file — feeds the Reports dropdown and future CLI tooling",
+      33,
       "1.1",
       null
     ],
@@ -76,7 +76,7 @@
       "Dependencies",
       "data/dependencies.bejson",
       "Import/require/source edges between library files across all four languages, so an AI or tool can check for breakage before deleting, moving, or renaming a file",
-      205,
+      219,
       "1.1",
       null
     ],

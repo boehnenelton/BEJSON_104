@@ -2,7 +2,7 @@
 
 Source of truth: BEJSON + MFDB Crash Course (v23). Author: Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 
-Every Core / Core_Nesting library file has a `Format_Scope:` header line. Trust it over filename guesses.
+Every Core library file (including the nesting modules) has a `Format_Scope:` header line. Trust it over filename guesses.
 
 ## One-sentence definitions
 - **BEJSON 104 / 104a / 104db** are the three **file formats** (`Format_Version`).
@@ -27,7 +27,7 @@ Every Core / Core_Nesting library file has a `Format_Scope:` header line. Trust 
 ## Related terms (also not 104db)
 - **MFDB-132**: a whole MFDB packed into one Chunked-104a document (sticky mounts via `.mfdb132_lock`). Packaging only.
 - **Chunked-104a**: a directory tree stored in one 104a document (`*_chunking` modules).
-- **Nested 104** (Core_Nesting): a complete 104 document embedded in a cell of a 104 document; max depth 16. Neither 104db nor MFDB.
+- **Nested 104** (Core nesting modules): a complete 104 document embedded in a cell of a 104 document; max depth 16. Neither 104db nor MFDB.
 - **Standardization vs validation** (MFDB v1.31): structural failures are hard errors; convention failures are warnings.
 
 ## Naming traps in the code

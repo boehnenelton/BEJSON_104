@@ -7,12 +7,12 @@
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
  *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
  *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
- * Version:         2.1.4
+ * Version:         2.1.5
  * Release_Version: 300
- * Date:            2026-10-02
+ * Date:            2026-10-16
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
- * RELATIONAL_ID:   aab79f58-8489-4a7d-9704-39fe7e01b47e
+ * RELATIONAL_ID:   4d174e8c-3327-447e-9562-87c4914aef99
  */
 
 import {
@@ -251,7 +251,13 @@ export function validateEntityFile(
 
   // No path escaping
   if (typeof entity.Parent_Hierarchy === "string") {
-    if (entity.Parent_Hierarchy.includes("..") && _escapesRoot(entity.Parent_Hierarchy)) {
+    // Parent_Hierarchy is relative to the entity file's own directory, so start at that directory's depth
+    // (default 1: the MFDB convention data/<entity>.bejson). Before 2.1.5 it started at 0 and rejected every
+    // valid "../104a.mfdb.bejson".
+    const entityDepth = options.entityRelativePath
+      ? options.entityRelativePath.replace(/\\/g, "/").split("/").filter((x) => x !== "" && x !== ".").length - 1
+      : 1;
+    if (entity.Parent_Hierarchy.includes("..") && _escapesRoot(entity.Parent_Hierarchy, Math.max(entityDepth, 0))) {
       _emitError(r, E.MISSING_PARENT_HIERARCHY,
         "Parent_Hierarchy must not escape the database root directory.", "Parent_Hierarchy");
     }
@@ -435,9 +441,9 @@ function _checkFKResolution(
 /**
  * True if a relative path (Parent_Hierarchy or file_path) climbs above the MFDB root.
  */
-function _escapesRoot(relPath: string): boolean {
+function _escapesRoot(relPath: string, startDepth = 0): boolean {
   const parts = relPath.replace(/\\/g, "/").split("/");
-  let depth = 0;
+  let depth = startDepth;
   for (const part of parts) {
     if (part === "..") {
       depth--;

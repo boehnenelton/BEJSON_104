@@ -7,12 +7,12 @@ Format_Scope:    104 | 104a | 104db (generic)
 Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-Version:         2.0.9
+Version:         2.0.10
 Release_Version: 300
-Date:            2026-10-06
+Date:            2026-10-11
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator:  Elton Boehnen
-RELATIONAL_ID:   4e71d63a-88fe-4737-87fd-b4136f6fd9af
+RELATIONAL_ID:   c81fa829-42a8-4a0a-a9f3-a485c1dac3a8
 """
 
 import json
@@ -22,6 +22,7 @@ import time
 import shutil
 import tempfile
 import logging
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -33,51 +34,142 @@ class BEJSONCoreError(Exception):
         self.code = code
 
 class ResilientPIDLock:
+    # Cross-process (and cross-thread) mutex for one file. The lock is the directory <path>.lockdir (an atomic mkdir); lock_meta.json inside it records {pid, timestamp, token}.
+    # Ownership: each acquire() mints a unique token; release() removes the lock only if this handle still owns it, so a handle that never acquired (or lost its lock) can never delete another owner's lock.
+    # Stale recovery: a lock is reclaimed only when its owner PID is dead (or the dir never received metadata for _INIT_GRACE seconds). Reclaim is serialised by a guard dir, re-validated under the guard, and done with an atomic rename -- never rmdir/unlink on a lock that may be live.
+    # Lock-dir layout and meta fields pid/timestamp are unchanged, so handles from older library copies interoperate (they ignore `token`).
+    _INIT_GRACE = 2.0     # seconds a lockdir may exist without lock_meta.json before it counts as abandoned (owner crashed between mkdir and the meta write)
+    _GUARD_STALE = 30.0   # seconds before a reclaim-guard dir left by a crashed reclaimer is discarded
+    _POLL = 0.1           # seconds between acquire attempts while waiting
+
     # Creates the lock handle for target_path: lock directory <path>.lockdir, metadata file lock_meta.json, timeout in seconds. Does not take the lock until acquire()/with.
     def __init__(self, target_path: Union[str, Path], timeout_seconds: int = 10):
         self.target    = Path(target_path)
         self.lock_dir  = Path(f"{target_path}.lockdir")
         self.meta_file = self.lock_dir / "lock_meta.json"
         self.timeout   = timeout_seconds
+        self._guard_dir = Path(f"{target_path}.lockdir.reclaim")
+        self._token     = None   # set while this handle owns the lock
+        self._owner_pid = None   # PID that acquired it (a forked child must not release the parent's lock)
 
-    # Takes the PID-lock: creates <target>.lockdir (an atomic mkdir) and writes lock_meta.json with the owner PID. Reclaims the lock if the recorded PID is dead. Waits up to `timeout` seconds; returns False on timeout.
-    def acquire(self) -> bool:
-        start_time = time.time()
-        while time.time() - start_time < self.timeout:
-            try:
-                self.lock_dir.mkdir(exist_ok=False)
-                self.meta_file.write_text(json.dumps({
-                    "pid":       os.getpid(),
-                    "timestamp": int(time.time())
-                }))
-                return True
-            except FileExistsError:
-                if self.meta_file.exists():
-                    try:
-                        meta      = json.loads(self.meta_file.read_text())
-                        owner_pid = meta.get("pid")
-                        if owner_pid:
-                            os.kill(owner_pid, 0)  # Signal 0: check if alive
-                    except (ProcessLookupError, OSError):
-                        # Owner is dead — safely reclaim
-                        self.release()
-                        continue
-                    except Exception:
-                        pass
-                time.sleep(0.1)
-        return False
+    # True when `pid` is a live process. PermissionError means the process exists (owned by another user), so it counts as alive.
+    @staticmethod
+    def _pid_alive(pid: int) -> bool:
+        try:
+            os.kill(pid, 0)  # Signal 0: existence check only
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        except OSError:
+            return False
+        return True
 
-    # Removes lock_meta.json and the .lockdir. Safe to call when the lock is already gone.
-    def release(self):
-        if self.meta_file.exists():
+    # Reads lock_meta.json. Returns the dict, or None when it is missing, mid-replace, unreadable or not a JSON object. Never raises.
+    def _read_meta(self) -> Optional[dict]:
+        try:
+            meta = json.loads(self.meta_file.read_text())
+        except (OSError, ValueError):
+            return None
+        return meta if isinstance(meta, dict) else None
+
+    # Decides whether the current lock holder is dead. Returns an identity tuple describing exactly what was judged (so it can be re-checked under the reclaim guard), or None when the lock is live, gone or too young to judge.
+    def _judge_stale(self) -> Optional[tuple]:
+        meta = self._read_meta()
+        if meta is not None:
+            pid = meta.get("pid")
+            if isinstance(pid, int) and not isinstance(pid, bool) and pid > 0:
+                if self._pid_alive(pid):
+                    return None
+                return ("dead", pid, meta.get("token"), meta.get("timestamp"))
+        # No usable metadata: a freshly created lockdir is still being initialised; only an old one is abandoned.
+        try:
+            mtime_ns = self.lock_dir.stat().st_mtime_ns
+        except OSError:
+            return None  # lock vanished: the caller simply retries mkdir
+        if time.time() - mtime_ns / 1e9 > self._INIT_GRACE:
+            return ("abandoned", mtime_ns)
+        return None
+
+    # Atomically moves a directory aside under a unique sibling name and deletes it. Returns False if the source was already gone (another process won).
+    def _discard(self, path: Path) -> bool:
+        trash = Path(f"{path}.{uuid.uuid4().hex}.trash")
+        try:
+            os.rename(path, trash)
+        except OSError:
+            return False
+        shutil.rmtree(trash, ignore_errors=True)
+        return True
+
+    # Removes a lock judged stale. Only one reclaimer runs at a time (guard dir); under the guard the judgement is repeated and the lock is removed only if the SAME dead owner is still in place. Returns True if the stale lock was removed.
+    def _reclaim_stale(self, judged: tuple) -> bool:
+        try:
+            self._guard_dir.mkdir(exist_ok=False)
+        except FileExistsError:
             try:
-                self.meta_file.unlink()
+                if time.time() - self._guard_dir.stat().st_mtime > self._GUARD_STALE:
+                    self._discard(self._guard_dir)  # reclaimer crashed while holding the guard
             except OSError:
                 pass
-        try:
-            self.lock_dir.rmdir()
+            return False
         except OSError:
-            pass
+            return False
+        try:
+            if self._judge_stale() != judged:
+                return False  # owner changed or came back to life since we looked
+            return self._discard(self.lock_dir)
+        finally:
+            try:
+                self._guard_dir.rmdir()
+            except OSError:
+                pass
+
+    # One attempt to take the lock: atomic mkdir, then lock_meta.json written atomically (temp file + rename) so readers never see partial JSON. Returns False if the lock is held.
+    def _try_create(self) -> bool:
+        try:
+            self.lock_dir.mkdir(exist_ok=False)
+        except FileExistsError:
+            return False
+        token = uuid.uuid4().hex
+        tmp   = self.lock_dir / f".meta-{token}.tmp"
+        try:
+            tmp.write_text(json.dumps({
+                "pid":       os.getpid(),
+                "timestamp": int(time.time()),
+                "token":     token,
+            }))
+            os.replace(tmp, self.meta_file)
+        except BaseException:
+            self._discard(self.lock_dir)  # we created this dir a moment ago; do not leave a metadata-less lock behind
+            raise
+        self._token     = token
+        self._owner_pid = os.getpid()
+        return True
+
+    # Takes the PID-lock. Waits up to `timeout` seconds (always at least one attempt); returns False on timeout. Reclaims the lock only from a dead owner (see _reclaim_stale).
+    def acquire(self) -> bool:
+        deadline = time.monotonic() + self.timeout
+        while True:
+            if self._try_create():
+                return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            judged = self._judge_stale()
+            if judged is not None and self._reclaim_stale(judged):
+                continue  # stale lock removed: retry mkdir immediately
+            time.sleep(min(self._POLL, remaining))
+
+    # Releases the lock if (and only if) this handle owns it. Safe to call when the lock is already gone, was never acquired, or was lost; it never removes a lock owned by someone else.
+    def release(self):
+        token, self._token = self._token, None
+        if token is None or self._owner_pid != os.getpid():
+            return
+        meta = self._read_meta()
+        if meta is None or meta.get("token") != token:
+            logging.warning("[BEJSON_CORE] Lock %s is no longer owned by this handle; not releasing", self.lock_dir)
+            return
+        self._discard(self.lock_dir)
 
     # Context-manager entry: acquires the lock or raises OSError(53) (E_MFDB_CORE_LOCK_FAILED code) on timeout. Used for writes to any BEJSON file, MFDB or not.
     def __enter__(self):

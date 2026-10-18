@@ -2,14 +2,18 @@
 Library:        lib_bejson_AI_bejson_genai.py
 Family:         AI
 Description:    Interface for Google Generative AI (GenAI) models.
-Version:        2.1.5
-Date:           2026-08-13
+Version:        2.2.0
+Date:           2026-10-13
 Author:         Elton Boehnen
 Contact:        eltonboehnen@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  5b8d2f61-3e7a-49c4-8f1b-2d6e9a4c7305
+RELATIONAL_ID:  d2a96f18-7b40-4c3e-8e51-0f6a3b9c7d24
 
 Changelog:
+  2.2.0 - GenAIKeyManager.load_keys(): fills env from the secure store (Core env 2.3.0
+          source_env_fill, non-overwriting; skipped if unavailable) and also reads the numbered
+          GEMINI_KEY_1..21 slots actually used in the secure store, alongside GEMINI_API_KEYS.
+          Keys are de-duplicated; file fallback and everything else unchanged.
   2.1.5 - AI-family audit fix: no module-level VERSION var existed despite
           this header claiming 2.1.4. Added, bumped for the fix itself.
 """
@@ -36,8 +40,12 @@ for sibling in ["Core", "Env", "AI", "Utility"]:
 
 from lib_bejson_Core_bejson_env import resolve_path
 from lib_bejson_Core_bejson_core import bejson_core_get_field_map
+try:
+    from lib_bejson_Core_bejson_env import source_env_fill as _source_env_fill
+except ImportError:
+    _source_env_fill = None
 
-VERSION = "2.1.5"  # was missing entirely; added per family policy
+VERSION = "2.2.0"
 
 # ANSI Status Colors
 C_RED = "\033[91m"
@@ -68,8 +76,17 @@ class GenAIKeyManager:
     def load_keys(self):
         """Load keys from the centralized BEJSON 104a key file and environment variables."""
         # Support centralized registry + Environment Variables (Phase 2)
+        if _source_env_fill is not None:
+            try:
+                _source_env_fill()
+            except Exception:
+                pass
         env_keys = os.environ.get("GEMINI_API_KEYS", "").split(",")
-        self.keys = [k.strip() for k in env_keys if k.strip()]
+        env_keys += [os.environ.get(f"GEMINI_KEY_{i}", "") for i in range(1, 22)]
+        self.keys = []
+        for k in (k.strip() for k in env_keys):
+            if k and k not in self.keys:
+                self.keys.append(k)
 
         if not os.path.exists(self.key_file):
             return

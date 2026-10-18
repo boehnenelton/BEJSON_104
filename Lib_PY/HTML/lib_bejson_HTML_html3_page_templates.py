@@ -13,8 +13,8 @@ RELATIONAL_ID:   31ba5b4b-95be-4701-907b-219c760b3c58
 
 import os
 import html as html_mod
-from lib_bejson_HTML_bejson_html3_skeletons import COLOR, BRUTAL_COLOR, CSS_CORE, CSS_BRUTAL, HTML_SKELETON, HTML_SKELETON_BRUTAL
-from lib_bejson_HTML_html3_sidemenu import _sidebar_html
+from .lib_bejson_HTML_bejson_html3_skeletons import COLOR, BRUTAL_COLOR, CSS_CORE, CSS_BRUTAL, HTML_SKELETON, HTML_SKELETON_BRUTAL
+from .lib_bejson_HTML_html3_sidemenu import _sidebar_html
 
 VERSION = "3.0.0"
 SCRIPT_NAME = "lib_bejson_HTML_html3_page_templates.py"
