@@ -9,14 +9,17 @@ Description:    Atomic unit: the single common response shape returned by
                  failure, and GenAI's prompter returns None on failure --
                  those four different conventions are exactly why nothing
                  could call the providers interchangeably before this file.
-Version:        1.0.1
-Date:           2026-09-09
+Version:        1.0.2
+Date:           2026-10-21
 Author:         Elton Boehnen
 Contact:        boehnenelton2024@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  36a73209-58fc-4a03-8aad-1c3cba5ff664
+RELATIONAL_ID:  1402866f-e0d3-46bf-972e-fdb05957b075
 
 Changelog:
+  1.0.2 (2026-10-21) -- Guard auto_parse_bejson_104db against non-JSON text
+        (require '{' alongside '104db' and 'BEJSON'), downgrade parser errors
+        to debug without exc_info, and allow auto_parse=False in ai_response_ok.
   1.0.1 (2026-09-09) -- BUGFIX: Added missing imports (Tuple from typing,
         Path from pathlib, logging) that caused auto_parse_bejson_104db()
         to silently crash on every invocation via bare except swallowing
@@ -31,7 +34,7 @@ from typing import Any, Optional, Tuple, TypedDict
 
 logger = logging.getLogger(__name__)
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 
 class AIResponse(TypedDict):
@@ -78,7 +81,7 @@ def auto_parse_bejson_104db(content: str, base_output_dir: Optional[str] = None)
       2. ./extracted_projects/<project_name> (default)
     Returns (project_meta, files_written_count, final_output_dir) or (None, 0, None) if not 104db.
     """
-    if "104db" not in content or "BEJSON" not in content:
+    if "{" not in content or "104db" not in content or "BEJSON" not in content:
         return None, 0, None
 
     try:
@@ -100,7 +103,7 @@ def auto_parse_bejson_104db(content: str, base_output_dir: Optional[str] = None)
         meta, count = unpack_bejson_104db_to_dir(doc, target_dir)
         return meta, count, target_dir
     except Exception as e:
-        logger.warning("auto_parse_bejson_104db failed: %s", e, exc_info=True)
+        logger.debug("auto_parse_bejson_104db failed/skipped: %s", e)
         return None, 0, None
 
 
@@ -113,9 +116,10 @@ def ai_response_ok(
     unsupported_params: Optional[list] = None,
     raw: Any = None,
     base_output_dir: Optional[str] = None,
+    auto_parse: bool = True,
 ) -> AIResponse:
     """Build a successful AIResponse and automatically unchunk/parse 104db content if detected."""
-    meta, count, out_dir = auto_parse_bejson_104db(content, base_output_dir)
+    meta, count, out_dir = auto_parse_bejson_104db(content, base_output_dir) if auto_parse else (None, 0, None)
     return AIResponse(
         success=True,
         content=content,
