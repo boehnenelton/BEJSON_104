@@ -7,12 +7,12 @@
 # Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
 #                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
 #                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-# Version:         2.1.5
+# Version:         2.2.0
 # Release_Version: 300
-# Date:            2026-10-16
+# Date:            2026-10-28
 # Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 # Format_Creator:  Elton Boehnen
-# RELATIONAL_ID:   f1658e86-a39e-490c-a78e-789f54c28473
+# RELATIONAL_ID:   d8f4a395-f5cb-417c-ba28-af60d6c26eff
 # -----------------------------------------------------------------------------
 
 set -o pipefail
@@ -47,7 +47,7 @@ bejson_validator_check_dependencies() {
 }
 
 # Basic validity check of a BEJSON file with jq: (1) parses as JSON, (2) the six mandatory keys exist, (3) Format is 'BEJSON' and Format_Creator is 'Elton Boehnen', (4) every row has as many cells as there are Fields, (5) the file does not contain the reserved in-memory key _bejson_field_map (E_RESERVED_KEY_COLLISION), (6) field names are unique (E_INVALID_FIELDS). Returns 0 or an E_* code.
-# This Bash validator does NOT apply the version-specific rules (record-type count, Record_Type_Parent for 104db, 104a field types, custom-header rules); use the Python, JavaScript or TypeScript validators for full 104 / 104a / 104db validation.
+# Also checks (2.2.0): Fields[].type is one of the six types, and the version rules (custom-header rule, Records_Type count, 104a primitives only, 104db Record_Type_Parent rules, per-cell value types) via __bejson_validator_check_version_rules. Parity with the Python validator.
 bejson_validator_validate_file() {
     local file_path="$1"
     if [[ ! -f "$file_path" ]]; then
@@ -75,6 +75,13 @@ bejson_validator_validate_file() {
     [[ "$fmt"     != "BEJSON"        ]] && return $E_INVALID_FORMAT
     [[ "$creator" != "Elton Boehnen" ]] && return $E_INVALID_FORMAT_CREATOR
 
+    # 3b. Field type check (closed set; "any" is NOT valid)
+    local bad_types
+    bad_types=$(jq -r '[.Fields[] | .type | select(IN("string","integer","number","boolean","array","object") | not)] | length' "$file_path")
+    if [[ "$bad_types" -gt 0 ]]; then
+        return $E_INVALID_FIELDS
+    fi
+
     # 4. Records Length check
     local field_count bad_records
     field_count=$(jq '.Fields | length' "$file_path")
@@ -93,9 +100,68 @@ bejson_validator_validate_file() {
         return $E_INVALID_FIELDS
     fi
 
+    # 6. Version-specific rules
+    local vr_rc
+    __bejson_validator_check_version_rules "$file_path"
+    vr_rc=$?
+    [[ $vr_rc -ne 0 ]] && return $vr_rc
+
     return 0
 }
 
+# __bejson_validator_check_version_rules <file>
+# Version rules for 104/104a/104db. First failure detail is left in BEJSON_VALIDATOR_LAST_ERROR.
+__bejson_validator_check_version_rules() {
+    local file_path="$1" out code detail
+    BEJSON_VALIDATOR_LAST_ERROR=""
+    out=$(jq -r '
+      def tok($t; $x):
+        if $x == null then true
+        elif $t == "string"  then ($x|type) == "string"
+        elif $t == "integer" then (($x|type) == "number") and ($x == ($x|floor))
+        elif $t == "number"  then ($x|type) == "number"
+        elif $t == "boolean" then ($x|type) == "boolean"
+        elif $t == "array"   then ($x|type) == "array"
+        elif $t == "object"  then ($x|type) == "object"
+        else true end;
+      . as $d | .Format_Version as $v
+      | if ($v | IN("104","104a","104db") | not) then ""
+        else
+          ($d.Fields) as $F | ($d.Records_Type) as $rt
+          | (if $v == "105db" then 1 else 0 end) as $uc
+          | ({"104":"104","104a":"104a","104db":"104db","105":"104","105a":"104a","105db":"104db"}[$v]) as $b
+          | (if $v | IN("105","105a") then 1 else 0 end) as $off
+          | def col($i): if $v == "105db" then (if $i == 0 then 0 else $i + 1 end) else $i + $off end;
+          if ($b | IN("104","104db")) and ([$d | keys[] | select(IN("Format","Format_Version","Format_Creator","Records_Type","Fields","Values","Parent_Hierarchy") | not)] | length > 0) then
+            "E_RESERVED_KEY_COLLISION\tcustom header forbidden in " + $v
+          elif ($rt | type) != "array" then "E_INVALID_RECORDS_TYPE\tRecords_Type must be a list"
+          elif ($b | IN("104","104a")) and ($rt | length) != 1 then "E_INVALID_RECORDS_TYPE\t" + $v + " must have exactly 1 record type, found " + ($rt|length|tostring)
+          elif $b == "104db" and ($rt | length) < 2 then "E_INVALID_RECORDS_TYPE\t" + $v + " requires 2+ types"
+          elif $b == "104db" and (($F[0].name // "") != "Record_Type_Parent") then "E_INVALID_RECORD_TYPE_PARENT\t" + $v + " first field must be Record_Type_Parent"
+          elif $b == "104db" and ([$d.Values[] | select(length > 0) | select((.[0]) as $x | ($rt | index($x)) == null)] | length > 0) then "E_INVALID_RECORD_TYPE_PARENT\t" + $v + " row discriminator not in Records_Type"
+          elif $b == "104a" and ([$F[] | select(.type | IN("array","object"))] | length > 0) then "E_INVALID_FIELDS\t" + $v + " forbids complex types"
+          elif $b == "104db" and ([$F[1:][] | select(has("Record_Type_Parent") | not)] | length > 0) then "E_INVALID_RECORD_TYPE_PARENT\t" + $v + " field missing Record_Type_Parent owner"
+          elif ([ $d.Values | to_entries[] | .key as $r | .value as $row | ($F | to_entries[]) | select(tok(.value.type; $row[col(.key)]) | not) ] | length > 0) then
+            ([ $d.Values | to_entries[] | .key as $r | .value as $row | ($F | to_entries[]) | select(tok(.value.type; $row[col(.key)]) | not) | "row \($r), col \(col(.key)) (\(.value.name)): expected \(.value.type)" ] | .[0]) as $m
+            | "E_TYPE_MISMATCH\tType mismatch at " + $m
+          else "" end
+        end' "$file_path" 2>/dev/null)
+    [[ -z "$out" ]] && return 0
+    code="${out%%$'\t'*}"; detail="${out#*$'\t'}"
+    BEJSON_VALIDATOR_LAST_ERROR="$detail"
+    echo "$detail" >&2
+    case "$code" in
+        E_RESERVED_KEY_COLLISION)      return $E_RESERVED_KEY_COLLISION ;;
+        E_INVALID_RECORDS_TYPE)        return $E_INVALID_RECORDS_TYPE ;;
+        E_INVALID_RECORD_TYPE_PARENT)  return $E_INVALID_RECORD_TYPE_PARENT ;;
+        E_INVALID_FIELDS)              return $E_INVALID_FIELDS ;;
+        E_INVALID_VALUES)              return $E_INVALID_VALUES ;;
+        E_TYPE_MISMATCH)               return $E_TYPE_MISMATCH ;;
+    esac
+    return 1
+}
+
 # Export functions for subshell use
+export -f __bejson_validator_check_version_rules
 export -f bejson_validator_check_dependencies
 export -f bejson_validator_validate_file

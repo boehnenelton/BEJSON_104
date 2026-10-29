@@ -7,9 +7,10 @@
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
  *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
  *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
- * Version:         2.1.5
+ * Version:         2.2.0
  * Release_Version: 300
- * Date:            2026-10-16
+ * Date:            2026-10-27
+ * Changelog:       2.2.0 - Level 2 bidirectional check is now a HARD error (code 38): Parent_Hierarchy resolved from the entity's directory must land on the manifest (exact match when manifestRelativePath is given, otherwise a root-level *.mfdb.bejson). Was a warning.
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
  * RELATIONAL_ID:   4d174e8c-3327-447e-9562-87c4914aef99
@@ -234,17 +235,20 @@ export function validateEntityFile(
       "Parent_Hierarchy");
   }
 
-  // Bidirectional check: entity's declared path must equal what the manifest recorded
-  if (options.entityRelativePath !== undefined && options.manifestRelativePath !== undefined) {
-    // The manifest says this entity lives at entityRelativePath.
-    // The entity's Parent_Hierarchy + its own path should resolve back to manifestRelativePath.
-    // We do a lightweight string-based check here — full path resolution is the caller's job.
-    // We emit a warning rather than an error because resolution is environment-dependent.
-    if (typeof entity.Parent_Hierarchy === "string") {
-      _emitWarning(r, E.BIDIRECTIONAL_PATH_FAILED,
-        "Bidirectional path check: verify that \"" + options.entityRelativePath +
-        "\" + Parent_Hierarchy \"" + entity.Parent_Hierarchy +
-        "\" resolves to manifest at \"" + options.manifestRelativePath + "\".",
+  // Bidirectional check (hard error, code 38): Parent_Hierarchy is relative to the entity file's own
+  // directory; resolved against entityRelativePath it must land on the manifest. With manifestRelativePath
+  // the match is exact; without it the target must be a root-level "*.mfdb.bejson".
+  if (options.entityRelativePath !== undefined && typeof entity.Parent_Hierarchy === "string") {
+    const resolvedPh = _posixResolve(options.entityRelativePath, entity.Parent_Hierarchy);
+    const manifestRel = options.manifestRelativePath;
+    const lands = manifestRel !== undefined
+      ? resolvedPh === _posixResolve("x", manifestRel).replace(/^\.\//, "")
+      : (resolvedPh.indexOf("/") === -1 && /\.mfdb\.bejson$/.test(resolvedPh));
+    if (!lands) {
+      _emitError(r, E.BIDIRECTIONAL_PATH_FAILED,
+        "[" + E.BIDIRECTIONAL_PATH_FAILED + "] Bidirectional check failed: Parent_Hierarchy \"" + entity.Parent_Hierarchy +
+        "\" from \"" + options.entityRelativePath + "\" resolves to \"" + resolvedPh + "\", which is not the manifest" +
+        (manifestRel !== undefined ? " \"" + manifestRel + "\"" : "") + ".",
         "Parent_Hierarchy");
     }
   }
@@ -275,6 +279,9 @@ export interface DatabaseValidationOptions {
   strict?: boolean;
   
   resolvedPaths?: Set<string>;
+
+  /** Manifest path relative to the DB root (default: any root-level *.mfdb.bejson). */
+  manifestRelativePath?: string;
 }
 
 /**
@@ -308,6 +315,7 @@ export function validateDatabase(
     const l2 = validateEntityFile(entityDoc, {
       expectedEntityName: record.entity_name,
       entityRelativePath: record.file_path,
+      manifestRelativePath: options.manifestRelativePath,
     });
     for (const e of l2.errors) _emitError(r, e.code, "[L2:" + record.entity_name + "] " + e.message, e.field, e.recordIndex);
     for (const w of l2.warnings) _emitWarning(r, w.code, "[L2:" + record.entity_name + "] " + w.message, w.field, w.recordIndex);
@@ -441,6 +449,18 @@ function _checkFKResolution(
 /**
  * True if a relative path (Parent_Hierarchy or file_path) climbs above the MFDB root.
  */
+/** Resolve `rel` against the directory of `fromFile` (both posix-style, DB-root-relative); returns a normalized path ("../x" if it climbs above the root). */
+function _posixResolve(fromFile: string, rel: string): string {
+  const base = fromFile.replace(/\\/g, "/").split("/").filter((x) => x !== "" && x !== ".");
+  base.pop(); // drop the file name -> its directory
+  for (const part of rel.replace(/\\/g, "/").split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") { if (base.length && base[base.length - 1] !== "..") base.pop(); else base.push(".."); }
+    else base.push(part);
+  }
+  return base.join("/");
+}
+
 function _escapesRoot(relPath: string, startDepth = 0): boolean {
   const parts = relPath.replace(/\\/g, "/").split("/");
   let depth = startDepth;

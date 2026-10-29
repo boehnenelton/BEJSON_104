@@ -8,7 +8,7 @@
   "Schema_Version": "2.6.1",
   "Author": "Elton Boehnen",
   "Created_At": "2026-07-18T06:45:04Z",
-  "Modified_At": "2026-10-16T18:00:00Z",
+  "Modified_At": "2026-10-27T00:00:00Z",
   "Network_Role": "Master",
   "Records_Type": [
     "mfdb"
@@ -44,7 +44,7 @@
       "Errors",
       "data/errors.bejson",
       "Global cross-family error code map (read-only aggregate; each family's own errors file is the source of truth)",
-      404,
+      416,
       "2.2",
       null
     ],
@@ -95,14 +95,6 @@
       9,
       "1.0",
       null
-    ],
-    [
-      "GeminiModelRegistry",
-      "Lib_PY/AI/gemini_model_registry.104a.bejson",
-      "Registry of Gemini/Gemma model IDs and capability flags. Consumed by GeminiModelRegistry (lib_bejson_AI_bejson_gemini.py) and reused by GeminiInteractionsAPI's get_standard_interactions_api() factory (lib_bejson_AI_bejson_interactions.py). Existed on disk but was never registered in this manifest until 2026-07-24.",
-      12,
-      "1.0",
-      "model_id"
     ]
   ]
 }
