@@ -23,8 +23,8 @@ Description:    The common call interface for transcription capability
                  keys, SDK missing, network/auth/rate-limit errors) -- those
                  come back as AIResponse(success=False, error=...). It only
                  raises for programmer error (unknown provider name).
-Version:        1.0.0
-Date:           2026-09-03
+Version:        1.1.0
+Date:           2026-10-16
 Author:         Elton Boehnen
 Contact:        boehnenelton2024@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
 Format_Creator: Elton Boehnen
@@ -32,6 +32,10 @@ RELATIONAL_ID:  3b7e9f14-6c2a-4d81-9e5f-7a1c4b8d2e63
 Release_Version: 300
 
 Changelog:
+  1.1.0 (2026-10-16) -- Added the "gemini_rest" provider (additive): same Gemini
+        keys/models/prompts as "gemini" but over the REST endpoint via urllib,
+        no google-genai SDK required (lib_bejson_AI_bejson_gemini_rest_transcribe.py).
+        "gemini" behavior is unchanged.
   1.0.0 (2026-09-03) -- Initial creation. New file; ai_dispatch.py,
         ai_response.py, and lib_bejson_AI_bejson_gemini_transcribe.py were
         not modified to add this.
@@ -45,9 +49,9 @@ from lib_bejson_AI_ai_response import AIResponse, ai_response_ok, ai_response_er
 
 logger = logging.getLogger("lib_bejson_AI_ai_transcribe_dispatch")
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
-PROVIDERS = ("gemini",)
+PROVIDERS = ("gemini", "gemini_rest")
 
 
 # ── Gemini (bejson_gemini_transcribe.py / GeminiTranscribeAPI) ─────────────
@@ -91,8 +95,39 @@ def _adapt_gemini_transcribe(
                                   unsupported_params=unsupported, raw=e)
 
 
+def _adapt_gemini_rest_transcribe(
+    file_path: Union[str, Path],
+    model_id: Optional[str],
+    *,
+    mode: str = "verbatim",
+    segment: bool = False,
+    long_media: bool = False,
+    chunk_seconds: int = 600,
+    **config,
+) -> AIResponse:
+    from lib_bejson_AI_bejson_gemini_rest_transcribe import get_rest_transcribe_api
+
+    api = get_rest_transcribe_api()
+    used_model = model_id or api.models.active_model_id
+    unsupported = ["config:" + ",".join(sorted(config.keys()))] if config else []
+    try:
+        if long_media:
+            content = api.transcribe_long_media(
+                file_path, model_id=model_id, mode=mode, segment=segment,
+                chunk_seconds=chunk_seconds,
+            )
+        else:
+            content = api.transcribe(file_path, model_id=model_id, mode=mode, segment=segment)
+        return ai_response_ok(content, provider="gemini_rest", model_id=used_model,
+                               unsupported_params=unsupported, raw=content)
+    except Exception as e:
+        return ai_response_error(str(e), provider="gemini_rest", model_id=used_model,
+                                  unsupported_params=unsupported, raw=e)
+
+
 _ADAPTERS = {
     "gemini": _adapt_gemini_transcribe,
+    "gemini_rest": _adapt_gemini_rest_transcribe,
 }
 
 
@@ -110,7 +145,7 @@ def ai_transcribe_dispatch(
     """
     The one call interface for transcription across AI-family providers.
 
-    provider       -- "gemini" (today's only transcription-capable provider).
+    provider       -- "gemini" (SDK) or "gemini_rest" (urllib REST, no SDK needed).
     file_path      -- Path to the audio/video file to transcribe.
     model_id       -- Optional model override; falls back to the provider's
                        own active/default model if omitted.
