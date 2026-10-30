@@ -128,6 +128,18 @@ class Base:
         bad = json.loads(json.dumps(mf)); bad["Records_Type"] = ["other"]; jd(bad, self.m)
         self.assertFalse(self.errs()[0].valid)
 
+    def test_network_role(self):
+        for role in ("Master", "Slave", "Standalone"):
+            mf = jl(self.m); mf["Network_Role"] = role; jd(mf, self.m)
+            self.assertTrue(self.errs()[0].valid, role)
+        mf = jl(self.m); mf["Network_Role"] = "RogueNode"; jd(mf, self.m)
+        r, e = self.errs(); self.assertFalse(r.valid); self.assertIn("[30]", e)
+
+    def test_fk_suffix_optional_in_104(self):
+        d = jl(self.ent); d["Fields"].append({"name": "ghost_id_fk", "type": "string"})
+        d["Values"][0].append("nowhere"); jd(d, self.ent)
+        self.assertTrue(self.errs(strict_fk=True)[0].valid)
+
 
 class TestSpec104(Base, unittest.TestCase):
     FMT = "104"

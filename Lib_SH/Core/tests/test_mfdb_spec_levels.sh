@@ -51,4 +51,7 @@ mk a; ed '.Format_Version="104a"|.Fields[0].type="string"'; ok entity_104a_31 "$
 # bidirectional: second manifest in same dir that does not list users.bejson, entity points at it
 mk a; cp "$M" "$D/other.mfdb.bejson"; jq '.Values=[["z","z.bejson",0]]' "$D/other.mfdb.bejson" > "$D/o.t" && mv "$D/o.t" "$D/other.mfdb.bejson"
 ed '.Parent_Hierarchy="other.mfdb.bejson"'; ok bidi_38 "$(chk)" "1|38|0"
+for R in Master Slave Standalone; do mk a; mn ".Network_Role=\"$R\""; ok "role_$R" "$(chk)" "0||0"; done
+mk a; mn '.Network_Role="RogueNode"';   ok role_invalid_30    "$(chk)" "1|30|0"
+mk a; ed '.Fields+=[{name:"ghost_id_fk",type:"string"}]|.Values[0]+=["nowhere"]'; ok fk_optional_104 "$(chk | cut -d'|' -f1)" "0"
 echo "passed=$P failed=$F"; [[ $F -eq 0 ]]

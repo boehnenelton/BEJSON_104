@@ -55,6 +55,8 @@ export function discoverRole(doc: unknown, filename: string): MFDBFileRole {
 // Level 1 — Manifest validation
 // ---------------------------------------------------------------------------
 
+export const VALID_NETWORK_ROLES = ["Master", "Slave", "Standalone"] as const;
+
 /**
  * Level 1: manifest rules -- 104a, Records_Type ["mfdb"], required MFDB headers and manifest fields. Not a 104db rule set.
  */
@@ -102,6 +104,22 @@ export function validateManifest(
       "Manifest is missing required header DB_Name.", "DB_Name");
   }
 
+  // Optional Network_Role header validation (Master | Slave | Standalone)
+  if (manifest["Network_Role"] !== undefined && manifest["Network_Role"] !== null) {
+    if (
+      typeof manifest["Network_Role"] !== "string" ||
+      !(VALID_NETWORK_ROLES as readonly string[]).includes(manifest["Network_Role"])
+    ) {
+      _emitError(
+        r,
+        E.NOT_A_MANIFEST,
+        "[" + E.NOT_A_MANIFEST + "] Invalid Network_Role: " + JSON.stringify(manifest["Network_Role"]) +
+        " (must be one of " + JSON.stringify(VALID_NETWORK_ROLES) + ").",
+        "Network_Role"
+      );
+    }
+  }
+
   // entity_name and file_path field presence
   const fieldNames = manifest.Fields.map((f) => f.name);
   if (!fieldNames.includes("entity_name")) {
@@ -125,18 +143,18 @@ export function validateManifest(
     const entityName = row[enIdx];
     const filePath = row[fpIdx];
 
-    // Null checks
-    if (entityName === null) {
+    // Null / empty checks
+    if (entityName === null || entityName === "") {
       _emitError(r, E.NULL_IN_REQUIRED_MANIFEST_FIELD,
-        "Values[" + i + "].entity_name must not be null.", "entity_name", i);
+        "Values[" + i + "].entity_name must not be null or empty.", "entity_name", i);
     }
-    if (filePath === null) {
+    if (filePath === null || filePath === "") {
       _emitError(r, E.NULL_IN_REQUIRED_MANIFEST_FIELD,
-        "Values[" + i + "].file_path must not be null.", "file_path", i);
+        "Values[" + i + "].file_path must not be null or empty.", "file_path", i);
     }
 
     // Uniqueness
-    if (typeof entityName === "string") {
+    if (typeof entityName === "string" && entityName !== "") {
       if (seenNames.has(entityName)) {
         _emitError(r, E.DUPLICATE_ENTRY,
           "Duplicate entity_name: \"" + entityName + "\".", "entity_name", i);
@@ -144,12 +162,17 @@ export function validateManifest(
         seenNames.add(entityName);
       }
     }
-    if (typeof filePath === "string") {
+    if (typeof filePath === "string" && filePath !== "") {
       if (seenPaths.has(filePath)) {
         _emitError(r, E.DUPLICATE_ENTRY,
           "Duplicate file_path: \"" + filePath + "\".", "file_path", i);
       } else {
         seenPaths.add(filePath);
+      }
+
+      if (_escapesRoot(filePath, 0)) {
+        _emitError(r, E.ENTITY_FILE_NOT_FOUND,
+          "[" + E.ENTITY_FILE_NOT_FOUND + "] Path escapes root: \"" + filePath + "\".", "file_path", i);
       }
 
       // File existence (optional — caller must provide resolvedPaths)
@@ -366,6 +389,7 @@ export function decodeDatabaseMeta(manifest: BEJSONDocument): MFDBDatabaseMeta {
     schema_version: (manifest["Schema_Version"] as string) ?? undefined,
     author: (manifest["Author"] as string) ?? undefined,
     created_at: (manifest["Created_At"] as string) ?? undefined,
+    network_role: (manifest["Network_Role"] as "Master" | "Slave" | "Standalone") ?? undefined,
   };
 }
 
@@ -403,12 +427,13 @@ function _checkRecordCounts(
 }
 
 /**
- * Checks *_fk values resolve to rows of the referenced entity. MFDB does not enforce foreign keys; unresolved values are reported (warning unless strict).
+ * Checks *_fk field naming convention against manifest primary_key.
+ * In 104, _fk is an optional tooling standardization convention (warnings only; Ref_Integrity is 105-only).
  */
 function _checkFKResolution(
   records: MFDBManifestRecord[],
   entityDocs: Map<string, unknown>,
-  strict: boolean,
+  _strict: boolean,
   r: ValidationResult
 ): void {
   // Build a map of primary_key field names to entity names
@@ -432,11 +457,7 @@ function _checkFKResolution(
       if (!pkMap.has(expectedPK)) {
         const msg = "[L3] FK field \"" + field.name + "\" in entity \"" + rec.entity_name +
           "\" cannot resolve to any manifest primary_key \"" + expectedPK + "\".";
-        if (strict) {
-          _emitError(r, E.FK_UNRESOLVED, msg, field.name);
-        } else {
-          _emitWarning(r, E.FK_UNRESOLVED, msg, field.name);
-        }
+        _emitWarning(r, E.FK_UNRESOLVED, msg, field.name);
       }
     }
   }
@@ -645,6 +666,13 @@ export function detectMfdbInChunk(doc: MfdbChunkedDoc): MfdbInChunkDetection {
   }
   if (JSON.stringify(manifestDoc.Records_Type) !== JSON.stringify(["mfdb"])) {
     result.errors.push("Manifest Records_Type must be exactly ['mfdb'].");
+  }
+  if (
+    manifestDoc.Network_Role !== undefined &&
+    manifestDoc.Network_Role !== null &&
+    !(VALID_NETWORK_ROLES as readonly string[]).includes(manifestDoc.Network_Role)
+  ) {
+    result.errors.push(`Manifest Network_Role must be one of ${JSON.stringify(VALID_NETWORK_ROLES)}.`);
   }
 
   const manifestFields: MfdbFieldDef[] = manifestDoc.Fields || [];
