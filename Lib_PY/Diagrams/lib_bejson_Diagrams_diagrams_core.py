@@ -1,16 +1,24 @@
 """
 Library:         lib_bejson_Diagrams_diagrams_core.py
 Family:          Diagrams
-Module Purpose:  Implements runtime functionality and logic for lib_bejson_Diagrams_diagrams_core.py.
+Module Purpose:  Core packaging, model serialization, and schema constants for the Diagrams family.
 Architecture:    MFDB provides multi-file database federation coordinating a 104a central manifest (104a.mfdb.bejson) with dense 104 entity tables, supporting atomic transaction locks and cross-disk relational foreign keys.
-Version:         1.0.0
+Version:         1.2.0
 Release_Version: 300
-Date:            2026-08-12
+Date:            2026-10-29
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator:  Elton Boehnen
-RELATIONAL_ID:   1d5f8a2c-6e3b-4f97-8a01-9c4d2e7b5f18
+RELATIONAL_ID:   4d9e2a1c-8b7f-4c56-9a0d-3f8e1b2a7c50
+Changelog:
+  1.2.0 (2026-10-29) - Merged v3 Diagrammer updates: added KNOWN_FLOW_VALUES, in-memory DiagramModel
+          MFDB-132 packaging/extraction (diagrams_core_create_mfdb132_package_from_model /
+          createMfdb132PackageFromModel and diagrams_core_extract_diagram_model_from_mfdb132 /
+          extractDiagramModelFromMfdb132) aligned to Core O(1) field-map cache, SHA-256 File_Hash,
+          Parent_Hierarchy normalization, and Diagram_Schema tagging.
+  1.0.0 (2026-08-12) - Initial release.
 """
 
+import copy
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -25,23 +33,22 @@ from lib_bejson_Core_mfdb_core import (
     mfdb_core_create_database,
 )
 from lib_bejson_Core_bejson_chunking import (
+    CHUNKED_104_FIELDS,
+    MFDB_MANIFEST_FILENAME,
+    MFDB_CHUNK_SCHEMA_VERSION,
     bejson_core_chunking_create_mfdb132_package,
     bejson_core_chunking_unchunk_mfdb132_package,
-    MFDB_MANIFEST_FILENAME,
+    bejson_core_chunking_get_timestamp,
+    bejson_core_chunking_hash_file_bytes,
 )
 
 from lib_bejson_Diagrams_bejson_errors import (
+    DiagramsError,
     E_DIAGRAMS_INVALID_ROOT,
     E_DIAGRAMS_WRITE_FAILED,
     E_DIAGRAMS_IMPORT_FAILED,
+    E_DIAGRAMS_VALIDATION_FAILED,
 )
-
-
-class DiagramsError(Exception):
-    def __init__(self, message: str, code: int, context: Optional[dict] = None):
-        super().__init__(message)
-        self.code = code
-        self.context = context or {}
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +99,8 @@ SHAPE_BASE_FIELDS: List[Dict[str, str]] = [
 ]
 
 KNOWN_SIZE_CLASSES = frozenset({"small", "medium", "large", "huge"})
-KNOWN_SHAPE_KINDS   = frozenset({"rect", "circle"})
+KNOWN_SHAPE_KINDS  = frozenset({"rect", "circle"})
+KNOWN_FLOW_VALUES  = frozenset({"forward", "backward", "bidirectional", "none"})
 
 # Tag written onto every MFDB-132 package produced by this family so
 # lib_bejson_Diagrams_diagrams_validator.py can recognize it as a diagram
@@ -169,8 +177,6 @@ def diagrams_core_write_package_file(mfdb_root_dir: str, db_name: str, dest_path
     doc = diagrams_core_export_package(mfdb_root_dir, db_name, package_version, prior_package_doc)
 
     if validate:
-        # Local import: avoids a core<->validator circular import at module
-        # load time (validator imports this core file).
         from lib_bejson_Diagrams_diagrams_validator import diagrams_validator_validate_package
         result = diagrams_validator_validate_package(doc)
         if not result.valid:
@@ -221,6 +227,164 @@ def diagrams_core_import_package_file(src_path: str, output_dir: str,
             package_validation,
         )
     return count, package_validation
+
+
+# ---------------------------------------------------------------------------
+# In-Memory DiagramModel MFDB-132 Packaging & Extraction (v3 Diagrammer)
+# ---------------------------------------------------------------------------
+
+def _clean_doc_for_json(doc: Dict[str, Any], ensure_parent_hierarchy: bool = False) -> Dict[str, Any]:
+    cleaned = {k: v for k, v in doc.items() if not str(k).startswith("_")}
+    if ensure_parent_hierarchy and "Parent_Hierarchy" not in cleaned:
+        cleaned["Parent_Hierarchy"] = "../104a.mfdb.bejson"
+    return cleaned
+
+
+def _make_chunk_row(file_name: str, rel_path: str, doc: Dict[str, Any],
+                    file_version: str = "1.0.0", is_entity: bool = True) -> list:
+    clean_doc = _clean_doc_for_json(doc, ensure_parent_hierarchy=is_entity)
+    content = json.dumps(clean_doc, indent=2)
+    file_hash = bejson_core_chunking_hash_file_bytes(content.encode("utf-8"))
+    return [
+        file_name,
+        ".bejson",
+        content,
+        file_version,
+        file_hash,
+        rel_path,
+        False,
+        False,
+    ]
+
+
+def diagrams_core_create_mfdb132_package_from_model(model: Dict[str, Any], db_name: str) -> Dict[str, Any]:
+    """
+    Creates a single-file MFDB-132 package document from an in-memory DiagramModel dict
+    ({manifest, boardDoc, connectorDoc, territoryDoc, shapeDocs}).
+    """
+    from lib_bejson_Diagrams_diagrams_validator import validate_diagram_model
+    val_result = validate_diagram_model(model)
+    if not val_result.valid:
+        msgs = "; ".join(val_result.errors)
+        raise DiagramsError(f"Diagram validation failed: {msgs}", E_DIAGRAMS_VALIDATION_FAILED, val_result.errors)
+
+    manifest = model["manifest"]
+    board_doc = model["boardDoc"]
+    connector_doc = model.get("connectorDoc") or {
+        "Format": "BEJSON", "Format_Version": "104", "Format_Creator": "Elton Boehnen",
+        "Parent_Hierarchy": "../104a.mfdb.bejson",
+        "Records_Type": ["Connector"], "Fields": copy.deepcopy(CONNECTOR_BASE_FIELDS), "Values": [],
+    }
+    territory_doc = model.get("territoryDoc") or {
+        "Format": "BEJSON", "Format_Version": "104", "Format_Creator": "Elton Boehnen",
+        "Parent_Hierarchy": "../104a.mfdb.bejson",
+        "Records_Type": ["Territory"], "Fields": copy.deepcopy(TERRITORY_BASE_FIELDS), "Values": [],
+    }
+    shape_docs = model.get("shapeDocs") or {}
+
+    values: List[list] = [
+        _make_chunk_row("104a.mfdb.bejson", "104a.mfdb.bejson", manifest, file_version="1.32", is_entity=False),
+        _make_chunk_row("board.bejson", "data/board.bejson", board_doc),
+        _make_chunk_row("connector.bejson", "data/connector.bejson", connector_doc),
+        _make_chunk_row("territory.bejson", "data/territory.bejson", territory_doc),
+    ]
+
+    for entity_name, shape_doc in shape_docs.items():
+        fname = f"{entity_name.lower()}.bejson"
+        values.append(_make_chunk_row(fname, f"data/{fname}", shape_doc))
+
+    return {
+        "Format": "BEJSON",
+        "Format_Version": "104a",
+        "Format_Creator": "Elton Boehnen",
+        "Schema_Name": "MFDB-132",
+        "Schema_Version": MFDB_CHUNK_SCHEMA_VERSION,
+        "Schema_Description": "MFDB 1.32 single-file diagram package.",
+        "Chunk_Date": bejson_core_chunking_get_timestamp(),
+        "Session_Is_Mounted": False,
+        "Mount_Path": "",
+        "Package_Version": "1",
+        "MFDB_Version": str(manifest.get("MFDB_Version", "1.32")),
+        "DB_Name": db_name,
+        "Package_Format": "MFDB-Chunked-104a",
+        "Diagram_Schema": DIAGRAM_SCHEMA_TAG,
+        "Records_Type": ["MFDB-132"],
+        "Fields": copy.deepcopy(CHUNKED_104_FIELDS),
+        "Values": values,
+    }
+
+
+def diagrams_core_extract_diagram_model_from_mfdb132(chunk_doc: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extracts an in-memory DiagramModel dict from a single-file MFDB-132 package document
+    using Core's O(1) Field-Map Cache.
+    """
+    fm = bejson_core_get_field_map(chunk_doc)
+    rel_idx = fm.get("Relative_Path")
+    content_idx = fm.get("File_Content")
+    if rel_idx is None or content_idx is None:
+        raise DiagramsError(
+            "Corrupted MFDB-132 diagram package: missing Relative_Path or File_Content field.",
+            E_DIAGRAMS_IMPORT_FAILED,
+        )
+
+    manifest: Optional[Dict[str, Any]] = None
+    board_doc: Optional[Dict[str, Any]] = None
+    connector_doc: Optional[Dict[str, Any]] = None
+    territory_doc: Optional[Dict[str, Any]] = None
+    shape_docs: Dict[str, Dict[str, Any]] = {}
+
+    for row in chunk_doc.get("Values", []):
+        rel_path = str(row[rel_idx] or "")
+        content = str(row[content_idx] or "")
+        if not rel_path or not content:
+            continue
+        doc = json.loads(content)
+        if rel_path == "104a.mfdb.bejson":
+            manifest = doc
+        elif "board.bejson" in rel_path:
+            board_doc = doc
+        elif "connector.bejson" in rel_path:
+            connector_doc = doc
+        elif "territory.bejson" in rel_path:
+            territory_doc = doc
+        elif doc.get("Records_Type") and str(doc["Records_Type"][0]).startswith("Shape_"):
+            shape_docs[str(doc["Records_Type"][0])] = doc
+
+    if not manifest or not board_doc:
+        raise DiagramsError(
+            "Corrupted or incomplete MFDB-132 diagram package: manifest or board missing.",
+            E_DIAGRAMS_IMPORT_FAILED,
+        )
+
+    model: Dict[str, Any] = {
+        "manifest": manifest,
+        "boardDoc": board_doc,
+        "connectorDoc": connector_doc or {
+            "Format": "BEJSON", "Format_Version": "104", "Format_Creator": "Elton Boehnen",
+            "Parent_Hierarchy": "../104a.mfdb.bejson",
+            "Records_Type": ["Connector"], "Fields": copy.deepcopy(CONNECTOR_BASE_FIELDS), "Values": [],
+        },
+        "territoryDoc": territory_doc or {
+            "Format": "BEJSON", "Format_Version": "104", "Format_Creator": "Elton Boehnen",
+            "Parent_Hierarchy": "../104a.mfdb.bejson",
+            "Records_Type": ["Territory"], "Fields": copy.deepcopy(TERRITORY_BASE_FIELDS), "Values": [],
+        },
+        "shapeDocs": shape_docs,
+    }
+
+    from lib_bejson_Diagrams_diagrams_validator import validate_diagram_model
+    val_result = validate_diagram_model(model)
+    if not val_result.valid:
+        msgs = "; ".join(val_result.errors)
+        raise DiagramsError(f"Imported package validation failed: {msgs}", E_DIAGRAMS_VALIDATION_FAILED, val_result.errors)
+
+    return model
+
+
+# CamelCase aliases for v3 parity
+createMfdb132PackageFromModel = diagrams_core_create_mfdb132_package_from_model
+extractDiagramModelFromMfdb132 = diagrams_core_extract_diagram_model_from_mfdb132
 
 
 # ---------------------------------------------------------------------------

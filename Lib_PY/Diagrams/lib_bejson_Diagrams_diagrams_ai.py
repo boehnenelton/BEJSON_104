@@ -9,51 +9,30 @@ Description:    Prompt-to-diagram builder. Turns a plain-English user prompt
                  create_territory() calls -- this library never touches an
                  MFDB root directly, it only talks to the model and
                  validates what comes back.
-
-                 System-instruction design: the caller hands this library
-                 its OWN live field schema (whatever it actually enforces on
-                 writes -- BOARD_FIELDS/CONNECTOR_FIELDS/TERRITORY_FIELDS/
-                 SHAPE_BASE_FIELDS-shaped lists) rather than this library
-                 hardcoding a copy of that schema, so there's no drift
-                 between what the AI is told and what the app will actually
-                 accept. Each field is rendered as a spreadsheet-style row
-                 (Field | Type | Example) -- literally the same Field-Map
-                 mental model BEJSON itself uses (Fields[] columns, Values[]
-                 rows) -- plus a worked example diagram, so the model is
-                 taught the contract the same way a person reading the
-                 BEJSON crash course would be.
-Version:        1.1.0
-Date:           2026-09-25
+Version:        1.3.0
+Date:           2026-10-29
 Author:         Elton Boehnen
 Contact:        boehnenelton2024@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  9b4e7c2a-5d1f-4a86-b03e-6c9f2a4d8b17
+RELATIONAL_ID:  8a9f2e1d-4b7c-43e6-90d5-3c1e8b2a7f50
 Release_Version: 300
 Changelog:
-  1.1.0 (2026-09-25) - Audit finding: this library only ever did structural
-          validation (tempId reference integrity) before a plan was handed
-          back to the caller for execution -- there was no check that the
-          VALUES in a plan were things the app would actually accept
-          (sizeClass/kind/flow enums, hex colors, numeric coordinates), and
-          diagram_mfdb.ai_build_diagram_from_prompt() executed a plan the
-          moment it came back with no approval step in between. Added
-          diagrams_ai_validate_plan_semantics() (post-reception, pre-
-          approval: errors vs. warnings returned separately) for the first
-          gap; the second is closed by the caller's own propose/approve
-          split (see diagram_mfdb.ai_propose_diagram_from_prompt() /
-          ai_apply_diagram_plan()). Also fixed AUTHOR_CONTACT_BLOCK, which
-          had the wrong email address baked into every system-instruction
-          call.
+  1.3.0 (2026-10-29) - Merged v3 Diagrammer updates into diagrams_ai_validate_plan_semantics():
+          added optional existing_shape_ids and auto_remediate support (fuzzy label-to-tempId
+          resolution for parentTempId and connector endpoints, "200px" string-to-float coercion,
+          duplicate tempId disambiguation, and unresolved connector filtering).
+  1.1.0 (2026-09-25) - Added diagrams_ai_validate_plan_semantics() and fixed AUTHOR_CONTACT_BLOCK.
 """
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from lib_bejson_AI_bejson_gemini import get_standard_api
 from lib_bejson_AI_bejson_errors import AIException
 
 from lib_bejson_Diagrams_bejson_errors import (
+    AIBuildError,
     E_DIAGRAMS_AI_EMPTY_PROMPT,
     E_DIAGRAMS_AI_BAD_RESPONSE,
     E_DIAGRAMS_AI_INVALID_PLAN,
@@ -65,13 +44,6 @@ AUTHOR_CONTACT_BLOCK = (
     "Elton Boehnen | boehnenelton2024@gmail.com | boehnenelton2024.pages.dev | "
     "github.com/boehnenelton"
 )
-
-
-class AIBuildError(Exception):
-    def __init__(self, message: str, code: int, context: Optional[dict] = None):
-        super().__init__(message)
-        self.code = code
-        self.context = context or {}
 
 
 def _field_table(fields: List[Dict[str, str]], example_row: Dict[str, Any], title: str) -> str:
@@ -94,9 +66,9 @@ def diagrams_ai_build_system_instructions(
     connector_fields: List[Dict[str, str]],
     territory_fields: List[Dict[str, str]],
     shape_own_fields: List[Dict[str, str]],
-    known_size_classes: List[str],
-    known_shape_kinds: List[str],
-    known_flow_values: List[str],
+    known_size_classes: Iterable[str],
+    known_shape_kinds: Iterable[str],
+    known_flow_values: Iterable[str],
 ) -> str:
     """
     Builds the full system instruction text for the diagram-building model.
@@ -122,6 +94,10 @@ def diagrams_ai_build_system_instructions(
         "board_membership_fk": "shape_1a2b3c4d5e", "shape_label": "Auth Service",
         "shape_color": "#334455", "shape_font_color": "auto", "shape_text": "",
     }
+
+    size_list = list(known_size_classes)
+    kind_list = list(known_shape_kinds)
+    flow_list = list(known_flow_values)
 
     return f"""You are the diagram-building assistant embedded in the BEJSON Diagrammer, a
 tool by {AUTHOR_CONTACT_BLOCK}. You turn a user's plain-English request into a
@@ -154,9 +130,9 @@ The diagram has three entities plus each shape's own private entity:
 {_field_table(territory_fields, terr_example, "Territory entity -- one row per background zone/grouping")}
 
 Known enums -- use ONLY these values:
-  - shape_size_class / sizeClass: {known_size_classes}
-  - shape_kind / kind: {known_shape_kinds}
-  - conn_flow / flow: {known_flow_values}
+  - shape_size_class / sizeClass: {size_list}
+  - shape_kind / kind: {kind_list}
+  - conn_flow / flow: {flow_list}
 
 ## Your job
 
@@ -194,6 +170,8 @@ Rules:
   - Every connector's fromTempId/toTempId MUST match a tempId you defined
     in "shapes". Every shape's parentTempId MUST be null or another tempId
     you defined (never a shape's own tempId).
+  - cx and cy MUST ALWAYS BE NUMERIC values (e.g. 200, 350). Do NOT output
+    strings, "px" suffixes, or node IDs for cx/cy.
   - Lay shapes out on a 50px grid, spaced so boxes don't overlap -- medium
     shapes are roughly 200x100, so space centers at least 250-300px apart
     horizontally when connected left-to-right, more for "large"/"huge".
@@ -221,7 +199,8 @@ def _strip_code_fences(text: str) -> str:
 
 def diagrams_ai_build_plan(user_prompt: str, system_instructions: str,
                             model_id: Optional[str] = None,
-                            temperature: float = 0.4) -> Dict[str, Any]:
+                            temperature: float = 0.4,
+                            existing_shape_ids: Optional[Iterable[str]] = None) -> Dict[str, Any]:
     """
     Calls Gemini with the given system instructions + the user's prompt,
     parses the JSON build plan back out, and structurally validates it
@@ -257,9 +236,9 @@ def diagrams_ai_build_plan(user_prompt: str, system_instructions: str,
 
     shapes = plan.setdefault("shapes", []) or []
     connectors = plan.setdefault("connectors", []) or []
-    territories = plan.setdefault("territories", []) or []
+    plan.setdefault("territories", [])
 
-    temp_ids = set()
+    temp_ids = set(existing_shape_ids) if existing_shape_ids else set()
     for s in shapes:
         tid = s.get("tempId")
         if not tid:
@@ -293,38 +272,106 @@ def diagrams_ai_build_plan(user_prompt: str, system_instructions: str,
 _HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{6}$|^#[0-9a-fA-F]{8}$")
 
 
+def _try_parse_coord(val: Any) -> Optional[float]:
+    if isinstance(val, bool):
+        return None
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, str):
+        cleaned = re.sub(r"px", "", val, flags=re.IGNORECASE).strip()
+        try:
+            return float(cleaned)
+        except ValueError:
+            return None
+    return None
+
+
 def diagrams_ai_validate_plan_semantics(
     plan: Dict[str, Any],
-    known_size_classes: List[str],
-    known_shape_kinds: List[str],
-    known_flow_values: List[str],
+    known_size_classes: Iterable[str],
+    known_shape_kinds: Iterable[str],
+    known_flow_values: Iterable[str],
+    existing_shape_ids: Optional[Iterable[str]] = None,
+    auto_remediate: bool = False,
 ) -> Tuple[List[str], List[str]]:
     """
     Post-reception validation, run AFTER diagrams_ai_build_plan()'s
     structural pass and BEFORE the plan is ever shown to the user for
-    approval or executed against the diagram. Structural validation only
-    proves the plan's tempId references are internally consistent; this
-    proves the VALUES in it are things the app will actually accept --
-    real size classes, real shape kinds, real flow directions, well-formed
-    hex colors, numeric coordinates. Never raises: returns (errors,
-    warnings) so the caller decides policy -- this app's policy (see
-    diagram_mfdb.ai_propose_diagram_from_prompt) is errors block approval,
-    warnings are shown but don't.
+    approval or executed against the diagram.
+    Supports both strict checking (default) and v3 auto-remediation
+    (auto_remediate=True or when existing_shape_ids is supplied).
+    Never raises: returns (errors, warnings).
     """
     errors: List[str] = []
     warnings: List[str] = []
 
-    for s in plan.get("shapes", []):
-        tid = s.get("tempId", "?")
+    if not isinstance(plan, dict):
+        errors.append("Plan root must be an object.")
+        return errors, warnings
+
+    size_set = list(known_size_classes)
+    kind_set = list(known_shape_kinds)
+    flow_set = list(known_flow_values)
+
+    shapes = plan.get("shapes") or []
+    connectors = plan.get("connectors") or []
+    territories = plan.get("territories") or []
+
+    temp_ids = set(existing_shape_ids) if existing_shape_ids else set()
+    label_to_temp_id: Dict[str, str] = {}
+
+    for i, s in enumerate(shapes):
+        tid = s.get("tempId")
+        if auto_remediate:
+            if not tid or not isinstance(tid, str) or not tid.strip():
+                tid = f"node_{i + 1}"
+                s["tempId"] = tid
+                warnings.append(f"Shape at index {i} was missing tempId, auto-assigned '{tid}'.")
+            elif tid in temp_ids:
+                original = tid
+                tid = f"{original}_{i + 1}"
+                s["tempId"] = tid
+                warnings.append(f"Shape '{original}' had a duplicate tempId, auto-assigned '{tid}'.")
+        tid = tid or "?"
+        temp_ids.add(tid)
+
+        label = s.get("label")
+        if label and str(label).strip():
+            label_to_temp_id[str(label).strip().lower()] = tid
+        else:
+            warnings.append(f"Shape '{tid}': no label -- will show up blank on the board.")
+
         sc = s.get("sizeClass")
-        if sc not in known_size_classes:
-            errors.append(f"Shape '{tid}': sizeClass {sc!r} is not one of {known_size_classes}.")
+        if sc not in size_set:
+            if auto_remediate and sc:
+                warnings.append(f"Shape '{tid}' unknown sizeClass '{sc}', defaulting to 'medium'.")
+                s["sizeClass"] = "medium"
+            else:
+                errors.append(f"Shape '{tid}': sizeClass {sc!r} is not one of {size_set}.")
+
         kind = s.get("kind")
-        if kind not in known_shape_kinds:
-            errors.append(f"Shape '{tid}': kind {kind!r} is not one of {known_shape_kinds}.")
-        for coord in ("cx", "cy"):
-            if not isinstance(s.get(coord), (int, float)):
-                errors.append(f"Shape '{tid}': {coord} is not numeric ({s.get(coord)!r}).")
+        if kind not in kind_set:
+            if auto_remediate and kind:
+                warnings.append(f"Shape '{tid}' unknown kind '{kind}', defaulting to 'rect'.")
+                s["kind"] = "rect"
+            else:
+                errors.append(f"Shape '{tid}': kind {kind!r} is not one of {kind_set}.")
+
+        for coord_idx, coord in enumerate(("cx", "cy")):
+            raw_val = s.get(coord)
+            if isinstance(raw_val, str) and auto_remediate:
+                parsed = _try_parse_coord(raw_val)
+                if parsed is not None:
+                    s[coord] = parsed
+                    raw_val = parsed
+            if isinstance(raw_val, bool) or not isinstance(raw_val, (int, float)):
+                if auto_remediate:
+                    fallback = (200 + (i % 4) * 260) if coord_idx == 0 else (200 + (i // 4) * 180)
+                    s[coord] = fallback
+                    warnings.append(f"Shape '{tid}' {coord} was non-numeric, auto-assigned to {fallback}.")
+                else:
+                    errors.append(f"Shape '{tid}': {coord} is not numeric ({raw_val!r}).")
+
         color = s.get("color")
         if color is not None and not _HEX_COLOR_RE.match(str(color)):
             warnings.append(f"Shape '{tid}': color {color!r} doesn't look like a hex color -- "
@@ -332,20 +379,65 @@ def diagrams_ai_validate_plan_semantics(
         font_color = s.get("fontColor")
         if font_color not in (None, "auto") and not _HEX_COLOR_RE.match(str(font_color)):
             warnings.append(f"Shape '{tid}': fontColor {font_color!r} is neither 'auto' nor a hex color.")
-        label = s.get("label")
-        if not label or not str(label).strip():
-            warnings.append(f"Shape '{tid}': no label -- will show up blank on the board.")
 
-    for i, c in enumerate(plan.get("connectors", [])):
+    if auto_remediate:
+        for s in shapes:
+            pid = s.get("parentTempId")
+            if pid and pid not in temp_ids:
+                fuzzy = label_to_temp_id.get(str(pid).lower())
+                if fuzzy:
+                    s["parentTempId"] = fuzzy
+                    warnings.append(f"Shape '{s.get('tempId')}' parentTempId resolved to '{fuzzy}' via label matching.")
+                else:
+                    warnings.append(f"Shape '{s.get('tempId')}' unresolved parentTempId '{pid}', promoted to root.")
+                    s["parentTempId"] = None
+
+    valid_connectors = []
+    for i, c in enumerate(connectors):
+        if auto_remediate:
+            from_id = c.get("fromTempId")
+            to_id = c.get("toTempId")
+            if not from_id or from_id not in temp_ids:
+                fuzzy_from = label_to_temp_id.get(str(from_id).lower()) if from_id else None
+                if fuzzy_from:
+                    c["fromTempId"] = fuzzy_from
+            if not to_id or to_id not in temp_ids:
+                fuzzy_to = label_to_temp_id.get(str(to_id).lower()) if to_id else None
+                if fuzzy_to:
+                    c["toTempId"] = fuzzy_to
+            if c.get("fromTempId") not in temp_ids or c.get("toTempId") not in temp_ids:
+                warnings.append(
+                    f"Connector at index {i} ('{c.get('fromTempId')}' -> '{c.get('toTempId')}') "
+                    "had unresolved endpoints and was auto-filtered."
+                )
+                continue
+
         flow = c.get("flow")
-        if flow not in known_flow_values:
-            errors.append(f"Connector #{i} ({c.get('fromTempId')}->{c.get('toTempId')}): "
-                           f"flow {flow!r} is not one of {known_flow_values}.")
+        if flow not in flow_set:
+            if auto_remediate and flow:
+                warnings.append(f"Connector at index {i} unknown flow '{flow}', defaulting to 'none'.")
+                c["flow"] = "none"
+            else:
+                errors.append(f"Connector #{i} ({c.get('fromTempId')}->{c.get('toTempId')}): "
+                               f"flow {flow!r} is not one of {flow_set}.")
+        valid_connectors.append(c)
 
-    for i, t in enumerate(plan.get("territories", [])):
-        for coord in ("cx", "cy", "size"):
-            if not isinstance(t.get(coord), (int, float)):
-                errors.append(f"Territory #{i}: {coord} is not numeric ({t.get(coord)!r}).")
+    if auto_remediate:
+        plan["connectors"] = valid_connectors
+
+    for i, t in enumerate(territories):
+        for coord, default_val in (("cx", 300), ("cy", 300), ("size", 350)):
+            raw_val = t.get(coord)
+            if isinstance(raw_val, str) and auto_remediate:
+                parsed = _try_parse_coord(raw_val)
+                if parsed is not None:
+                    t[coord] = parsed
+                    raw_val = parsed
+            if isinstance(raw_val, bool) or not isinstance(raw_val, (int, float)):
+                if auto_remediate:
+                    t[coord] = default_val
+                else:
+                    errors.append(f"Territory #{i}: {coord} is not numeric ({raw_val!r}).")
         color = t.get("color")
         if color is not None and not _HEX_COLOR_RE.match(str(color)):
             warnings.append(f"Territory #{i}: color {color!r} doesn't look like a hex color.")

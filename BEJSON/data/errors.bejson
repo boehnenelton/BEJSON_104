@@ -2940,6 +2940,524 @@
       "Standards",
       "PY",
       "Standards Logging (250-269)"
+    ],
+    [
+      436,
+      "E_DIAGRAMS_INVALID_MODEL",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      437,
+      "E_DIAGRAMS_INVALID_BOARD",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      438,
+      "E_DIAGRAMS_INVALID_SHAPE",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      439,
+      "E_DIAGRAMS_INVALID_TEXT_OBJECT",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      440,
+      "E_DIAGRAMS_INVALID_ARROW",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      441,
+      "E_DIAGRAMS_ORPHAN_ELEMENT",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      442,
+      "E_DIAGRAMS_MISSING_REQUIRED_FIELD",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      443,
+      "E_DIAGRAMS_INVALID_GEOMETRY",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      444,
+      "E_DIAGRAMS_DUPLICATE_ID",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      445,
+      "E_DIAGRAMS_DANGLING_ARROW_ENDPOINT",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      446,
+      "E_DIAGRAMS_INVALID_FLOW_DIRECTION",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      447,
+      "E_DIAGRAMS_INVALID_LABEL_POSITION",
+      "Diagrams",
+      "PY",
+      "Diagrams Validator"
+    ],
+    [
+      448,
+      "E_DIAGRAMS_AI_TEMP_ID_UNRESOLVED",
+      "Diagrams",
+      "PY",
+      "Diagrams AI"
+    ],
+    [
+      449,
+      "E_DIAGRAMS_PACKAGE_CORRUPT",
+      "Diagrams",
+      "PY",
+      "Diagrams Core"
+    ],
+    [
+      420,
+      "E_DIAGRAMS_INVALID_SCHEMA",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      421,
+      "E_DIAGRAMS_MISSING_SHAPE_ID",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      422,
+      "E_DIAGRAMS_INVALID_SHAPE_TYPE",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      423,
+      "E_DIAGRAMS_INVALID_COORDINATE",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      424,
+      "E_DIAGRAMS_DANGLING_CONNECTOR",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      425,
+      "E_DIAGRAMS_INVALID_BOARD_FK",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      426,
+      "E_DIAGRAMS_DUPLICATE_SHAPE_ID",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      427,
+      "E_DIAGRAMS_CIRCULAR_HIERARCHY",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      428,
+      "E_DIAGRAMS_INVALID_COLOR_TOKEN",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      429,
+      "E_DIAGRAMS_EXPORT_FAILED",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      430,
+      "E_DIAGRAMS_IMPORT_FAILED",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      431,
+      "E_DIAGRAMS_AI_EMPTY_PROMPT",
+      "Diagrams",
+      "JS",
+      "Diagrams AI"
+    ],
+    [
+      432,
+      "E_DIAGRAMS_AI_BAD_RESPONSE",
+      "Diagrams",
+      "JS",
+      "Diagrams AI"
+    ],
+    [
+      433,
+      "E_DIAGRAMS_AI_INVALID_PLAN",
+      "Diagrams",
+      "JS",
+      "Diagrams AI"
+    ],
+    [
+      434,
+      "E_DIAGRAMS_AI_PROVIDER_ERROR",
+      "Diagrams",
+      "JS",
+      "Diagrams AI"
+    ],
+    [
+      435,
+      "E_DIAGRAMS_AI_SEMANTIC_INVALID",
+      "Diagrams",
+      "JS",
+      "Diagrams AI"
+    ],
+    [
+      436,
+      "E_DIAGRAMS_INVALID_MODEL",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      437,
+      "E_DIAGRAMS_INVALID_BOARD",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      438,
+      "E_DIAGRAMS_INVALID_SHAPE",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      439,
+      "E_DIAGRAMS_INVALID_TEXT_OBJECT",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      440,
+      "E_DIAGRAMS_INVALID_ARROW",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      441,
+      "E_DIAGRAMS_ORPHAN_ELEMENT",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      442,
+      "E_DIAGRAMS_MISSING_REQUIRED_FIELD",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      443,
+      "E_DIAGRAMS_INVALID_GEOMETRY",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      444,
+      "E_DIAGRAMS_DUPLICATE_ID",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      445,
+      "E_DIAGRAMS_DANGLING_ARROW_ENDPOINT",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      446,
+      "E_DIAGRAMS_INVALID_FLOW_DIRECTION",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      447,
+      "E_DIAGRAMS_INVALID_LABEL_POSITION",
+      "Diagrams",
+      "JS",
+      "Diagrams Validator"
+    ],
+    [
+      448,
+      "E_DIAGRAMS_AI_TEMP_ID_UNRESOLVED",
+      "Diagrams",
+      "JS",
+      "Diagrams AI"
+    ],
+    [
+      449,
+      "E_DIAGRAMS_PACKAGE_CORRUPT",
+      "Diagrams",
+      "JS",
+      "Diagrams Core"
+    ],
+    [
+      420,
+      "E_DIAGRAMS_INVALID_SCHEMA",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      421,
+      "E_DIAGRAMS_MISSING_SHAPE_ID",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      422,
+      "E_DIAGRAMS_INVALID_SHAPE_TYPE",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      423,
+      "E_DIAGRAMS_INVALID_COORDINATE",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      424,
+      "E_DIAGRAMS_DANGLING_CONNECTOR",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      425,
+      "E_DIAGRAMS_INVALID_BOARD_FK",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      426,
+      "E_DIAGRAMS_DUPLICATE_SHAPE_ID",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      427,
+      "E_DIAGRAMS_CIRCULAR_HIERARCHY",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      428,
+      "E_DIAGRAMS_INVALID_COLOR_TOKEN",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      429,
+      "E_DIAGRAMS_EXPORT_FAILED",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      430,
+      "E_DIAGRAMS_IMPORT_FAILED",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
+    ],
+    [
+      431,
+      "E_DIAGRAMS_AI_EMPTY_PROMPT",
+      "Diagrams",
+      "TS",
+      "Diagrams AI"
+    ],
+    [
+      432,
+      "E_DIAGRAMS_AI_BAD_RESPONSE",
+      "Diagrams",
+      "TS",
+      "Diagrams AI"
+    ],
+    [
+      433,
+      "E_DIAGRAMS_AI_INVALID_PLAN",
+      "Diagrams",
+      "TS",
+      "Diagrams AI"
+    ],
+    [
+      434,
+      "E_DIAGRAMS_AI_PROVIDER_ERROR",
+      "Diagrams",
+      "TS",
+      "Diagrams AI"
+    ],
+    [
+      435,
+      "E_DIAGRAMS_AI_SEMANTIC_INVALID",
+      "Diagrams",
+      "TS",
+      "Diagrams AI"
+    ],
+    [
+      436,
+      "E_DIAGRAMS_INVALID_MODEL",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      437,
+      "E_DIAGRAMS_INVALID_BOARD",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      438,
+      "E_DIAGRAMS_INVALID_SHAPE",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      439,
+      "E_DIAGRAMS_INVALID_TEXT_OBJECT",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      440,
+      "E_DIAGRAMS_INVALID_ARROW",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      441,
+      "E_DIAGRAMS_ORPHAN_ELEMENT",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      442,
+      "E_DIAGRAMS_MISSING_REQUIRED_FIELD",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      443,
+      "E_DIAGRAMS_INVALID_GEOMETRY",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      444,
+      "E_DIAGRAMS_DUPLICATE_ID",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      445,
+      "E_DIAGRAMS_DANGLING_ARROW_ENDPOINT",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      446,
+      "E_DIAGRAMS_INVALID_FLOW_DIRECTION",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      447,
+      "E_DIAGRAMS_INVALID_LABEL_POSITION",
+      "Diagrams",
+      "TS",
+      "Diagrams Validator"
+    ],
+    [
+      448,
+      "E_DIAGRAMS_AI_TEMP_ID_UNRESOLVED",
+      "Diagrams",
+      "TS",
+      "Diagrams AI"
+    ],
+    [
+      449,
+      "E_DIAGRAMS_PACKAGE_CORRUPT",
+      "Diagrams",
+      "TS",
+      "Diagrams Core"
     ]
   ]
 }

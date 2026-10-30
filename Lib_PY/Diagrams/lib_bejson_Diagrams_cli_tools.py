@@ -2,23 +2,27 @@
 Library:         lib_bejson_Diagrams_cli_tools.py
 Family:          Diagrams
 Module Purpose:  CLI tooling layer for XML tag parsing, context extraction, and layout scaffolding in AI diagram generation.
-Architecture:    Provides pre-placement spatial math, XML tag parsing (<scaffold>, <zone>), and grid-alignment scaffolding for BEJSON Diagrammer AI build plans.
-Version:         1.0.0
+Architecture:    Provides pre-placement spatial math, XML tag parsing (<scaffold>, <zone>), collision avoidance, and grid-alignment scaffolding for BEJSON Diagrammer AI build plans.
+Version:         1.2.0
 Release_Version: 300
-Date:            2026-09-21
+Date:            2026-10-29
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator:  Elton Boehnen
 RELATIONAL_ID:   64b9314e-f6bf-4807-84c7-a2852eae1771
+Changelog:
+  1.2.0 (2026-10-29) - Merged v3 Diagrammer collision-avoidance (occupied coordinate set) and territory
+          grid snapping into apply_layout_scaffolding(), plus camelCase aliases for cross-language parity.
+  1.0.0 (2026-09-21) - Initial release.
 """
 
 import re
 import math
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 
 # ---------------------------------------------------------------------------
 # XML Tag Parsing & Context Extraction
@@ -59,7 +63,6 @@ def parse_xml_tags(response_text: str) -> Dict[str, Any]:
         content = match.group("content").strip()
         zones.append({"name": name, "attributes": attrs, "content": content})
 
-    # Strip XML tags to leave plain JSON content
     cleaned_text = XML_SCAFFOLD_PATTERN.sub("", response_text or "")
     cleaned_text = XML_ZONE_PATTERN.sub("", cleaned_text).strip()
 
@@ -76,6 +79,8 @@ def parse_xml_tags(response_text: str) -> Dict[str, Any]:
 
 def snap_to_grid(value: float, grid_size: int = 50) -> int:
     """Snaps a pixel coordinate to the nearest grid step (default 50px)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or math.isnan(value):
+        return 200
     return int(round(value / grid_size) * grid_size)
 
 
@@ -91,10 +96,10 @@ def scaffold_flowchart(
     direction: 'lr' (left-to-right) or 'tb' (top-to-bottom).
     """
     curr_x, curr_y = start_cx, start_cy
-    for i, s in enumerate(shapes):
-        if "cx" not in s or s["cx"] == 200:
+    for s in shapes:
+        if "cx" not in s or s["cx"] is None or s["cx"] == 200:
             s["cx"] = snap_to_grid(curr_x)
-        if "cy" not in s or s["cy"] == 200:
+        if "cy" not in s or s["cy"] is None or s["cy"] == 200:
             s["cy"] = snap_to_grid(curr_y)
 
         if direction.lower() == "tb":
@@ -133,7 +138,6 @@ def scaffold_tree(
     """
     Arranges shapes in a hierarchical tree layout based on parentTempId relationships.
     """
-    shape_map = {s.get("tempId"): s for s in shapes if s.get("tempId")}
     children_map: Dict[Optional[str], List[Dict[str, Any]]] = {}
 
     for s in shapes:
@@ -185,7 +189,6 @@ def scaffold_zones(
         zone_name = z.get("name", f"Zone {i+1}")
         member_ids = z.get("memberTempIds", [])
 
-        # Find member shapes
         zone_shapes = [shape_map[tid] for tid in member_ids if tid in shape_map]
         if not zone_shapes:
             continue
@@ -213,33 +216,58 @@ def scaffold_zones(
 
 
 # ---------------------------------------------------------------------------
-# Post-Processing Plan Enhancer
+# Post-Processing Plan Enhancer (with v3 Collision Avoidance)
 # ---------------------------------------------------------------------------
 
 def apply_layout_scaffolding(plan: Dict[str, Any]) -> Dict[str, Any]:
     """
     Post-processes an AI build plan to enforce clean grid positioning and non-overlapping layouts.
-    Auto-detects structure type (tree vs. flowchart vs. grid) if not explicitly set.
+    Auto-detects structure type (tree vs. flowchart vs. grid) when coordinates are unset,
+    snaps all coordinates to a 50px grid, prevents direct node collisions, and snaps territories.
     """
-    shapes = plan.get("shapes", [])
-    if not shapes:
+    if not isinstance(plan, dict):
         return plan
 
-    has_parents = any(s.get("parentTempId") for s in shapes)
+    shapes = plan.get("shapes")
+    if isinstance(shapes, list) and shapes:
+        needs_auto_layout = any(
+            not isinstance(s.get("cx"), (int, float)) or not isinstance(s.get("cy"), (int, float))
+            for s in shapes
+        )
+        if needs_auto_layout:
+            has_parents = any(s.get("parentTempId") for s in shapes)
+            if has_parents:
+                scaffold_tree(shapes)
+            elif len(shapes) > 4:
+                scaffold_grid(shapes, columns=math.ceil(math.sqrt(len(shapes))))
+            else:
+                scaffold_flowchart(shapes)
 
-    if has_parents:
-        scaffold_tree(shapes)
-    elif len(shapes) > 4:
-        scaffold_grid(shapes, columns=math.ceil(math.sqrt(len(shapes))))
-    else:
-        scaffold_flowchart(shapes)
+        occupied: set = set()
+        for i, s in enumerate(shapes):
+            raw_cx = s.get("cx")
+            raw_cy = s.get("cy")
+            cx = snap_to_grid(raw_cx) if isinstance(raw_cx, (int, float)) and not isinstance(raw_cx, bool) else (200 + (i % 5) * 240)
+            cy = snap_to_grid(raw_cy) if isinstance(raw_cy, (int, float)) and not isinstance(raw_cy, bool) else (200 + (i // 5) * 160)
 
-    # Ensure all coordinates are snapped to 50px grid
-    for s in shapes:
-        if "cx" in s:
-            s["cx"] = snap_to_grid(s["cx"])
-        if "cy" in s:
-            s["cy"] = snap_to_grid(s["cy"])
+            key = f"{cx}_{cy}"
+            while key in occupied:
+                cx = snap_to_grid(cx + 240)
+                key = f"{cx}_{cy}"
+
+            occupied.add(key)
+            s["cx"] = cx
+            s["cy"] = cy
+
+    territories = plan.get("territories")
+    if isinstance(territories, list):
+        for t in territories:
+            raw_cx = t.get("cx")
+            raw_cy = t.get("cy")
+            raw_size = t.get("size")
+            t["cx"] = snap_to_grid(raw_cx) if isinstance(raw_cx, (int, float)) and not isinstance(raw_cx, bool) else 300
+            t["cy"] = snap_to_grid(raw_cy) if isinstance(raw_cy, (int, float)) and not isinstance(raw_cy, bool) else 300
+            t["size"] = max(80, snap_to_grid(raw_size, 40)) if isinstance(raw_size, (int, float)) and not isinstance(raw_size, bool) else 240
 
     return plan
 
@@ -272,3 +300,15 @@ You may optionally wrap layout preferences in XML tags preceding the JSON respon
 Respond with clean JSON following any XML hints.
 """
     return base_instructions + xml_guidance
+
+
+# CamelCase aliases for v3 parity
+parseXmlAttributes = parse_xml_attributes
+parseXmlTags = parse_xml_tags
+snapToGrid = snap_to_grid
+scaffoldFlowchart = scaffold_flowchart
+scaffoldGrid = scaffold_grid
+scaffoldTree = scaffold_tree
+scaffoldZones = scaffold_zones
+applyLayoutScaffolding = apply_layout_scaffolding
+enhanceSystemPromptWithXmlTools = enhance_system_prompt_with_xml_tools

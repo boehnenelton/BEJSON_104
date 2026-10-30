@@ -1,11 +1,11 @@
 /**
  * Library:         index.ts
  * Family:          Lib_TS
- * Module Purpose:  Main entry point for TypeScript library family. v2.1.0: Added Gaming/Backend sub-family (AI, Combat, Inventory, PhysicsBackend, Registry, Terrain, GamingTypes).
+ * Module Purpose:  Main entry point for TypeScript library family. v2.2.0: Added Diagrams family (errors, core, validator, AI, cli_tools).
  * Architecture:    BEJSON 104db provides single-file multi-entity relational storage with positional null-padding, Record_Type_Parent discriminator headers, and plain-text LLM readability.
- * Version:         2.1.0
+ * Version:         2.2.0
  * Release_Version: 300
- * Date:            2026-06-18
+ * Date:            2026-10-30
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
  * RELATIONAL_ID:   f35f05b7-d602-49ad-bc3b-0137c25204de
@@ -66,6 +66,9 @@ export * from "./Gaming/Backend/lib_bejson_GamingBackend_physics";
 export * from "./Gaming/Backend/lib_bejson_GamingBackend_registry";
 export * from "./Gaming/Backend/lib_bejson_GamingBackend_terrain";
 export * from "./Gaming/Backend/lib_bejson_GamingBackend_state";
+
+// Diagrams family (v2.2.0)
+export * from "./Diagrams";
 
 // Schema management
 export * from "./Core/lib_bejson_Core_bejson_schema";

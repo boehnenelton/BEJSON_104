@@ -259,6 +259,20 @@
       "false",
       "Lib_PY/Projects",
       "Project manager library. No errors file. Registered 2026-10-14 (was missing from registry)."
+    ],
+    [
+      "Diagrams",
+      "JS",
+      "true",
+      "Lib_JS/Diagrams",
+      "Merged from Diagrammer v3 (codes 420-449) and wired to Core field-map & chunking"
+    ],
+    [
+      "Diagrams",
+      "TS",
+      "true",
+      "Lib_TS/Diagrams",
+      "Merged from Diagrammer v3 (codes 420-449) and wired to Core field-map & chunking"
     ]
   ]
 }
