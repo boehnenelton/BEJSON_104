@@ -7,13 +7,15 @@ Format_Scope:    MFDB only (104a manifest + 104 entity files; NOT 104db)
 Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-Version:         2.3.0
+Version:         2.3.1
 Release_Version: 300
 Changelog:       2.3.0 (2026-10-27) MFDB spec Level 2/3 now enforced: entity Records_Type == manifest entity_name, exactly one [34]; bidirectional manifest<->entity [38]; orphan [37]; record_count drift = warning; error codes embedded as [NN] in messages.
-Date:            2026-10-27
+Date:            2026-10-30
+Changelog:
+  2.3.1 - 2026-10-30: Parity with libraries_105 2.4.1: optional Network_Role validated (code 30); [37] on missing manifest; path-escape error carries [33]; absolute paths escape the root.
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator:  Elton Boehnen
-RELATIONAL_ID:   069574e8-7f27-4c36-80bf-0656a607980e
+RELATIONAL_ID:   c5ca238e-33a6-4efd-8691-b58668df72fe
 """
 
 import json
@@ -123,10 +125,10 @@ def validate_mfdb_archive(archive_path: str) -> MFDBValidationResult:
         res.add_error(f"Invalid zip: {e}", "Zip Parser")
     return res
 
-VALID_NETWORK_ROLES = ("Master", "Slave", "Standalone")
-
 # Level 1: validates the manifest as a BEJSON 104a document named *.mfdb.bejson with Records_Type ["mfdb"] and the required manifest fields/headers (e.g. MFDB_Version, DB_Name).
 # A 104db file or a plain 104a that is not an MFDB manifest fails here.
+VALID_NETWORK_ROLES = ("Master", "Slave", "Standalone")
+
 def validate_mfdb_manifest(manifest_path: str) -> MFDBValidationResult:
     res = MFDBValidationResult()
     p = Path(manifest_path)
@@ -163,7 +165,7 @@ def validate_mfdb_manifest(manifest_path: str) -> MFDBValidationResult:
         # NEW-08: reject file_path values that attempt to escape the MFDB root
         if fp and _bejson_mfdb_escapes_root(fp):
             res.add_error(
-                f"Path traversal detected in file_path for entity '{en}': '{fp}'",
+                f"[{E_MFDB_ENTITY_NOT_FOUND}] Path traversal detected in file_path for entity '{en}': '{fp}'",
                 "Values"
             )
             continue
@@ -414,15 +416,11 @@ def mfdb_validator_detect_mfdb_in_chunk(doc: Dict[str, Any]) -> Dict[str, Any]:
     result["mfdb_detected"] = True
     result["db_name"] = manifest_doc.get("DB_Name")
     result["mfdb_version"] = manifest_doc.get("MFDB_Version")
-    result["network_role"] = manifest_doc.get("Network_Role")
 
     if manifest_doc.get("Format_Version") != "104a":
         result["errors"].append("Manifest Format_Version must be '104a'.")
     if manifest_doc.get("Records_Type") != ["mfdb"]:
         result["errors"].append("Manifest Records_Type must be exactly ['mfdb'].")
-    if "Network_Role" in manifest_doc and manifest_doc["Network_Role"] is not None:
-        if manifest_doc["Network_Role"] not in VALID_NETWORK_ROLES:
-            result["errors"].append(f"[{E_MFDB_NOT_MANIFEST}] Manifest Network_Role must be one of {VALID_NETWORK_ROLES}.")
 
     manifest_fm = {f["name"]: i for i, f in enumerate(manifest_doc.get("Fields", []))}
     if "entity_name" not in manifest_fm or "file_path" not in manifest_fm:

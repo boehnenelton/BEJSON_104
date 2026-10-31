@@ -7,12 +7,14 @@
 # Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
 #                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
 #                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-# Version:         2.2.0
+# Version:         2.3.0
 # Release_Version: 300
-# Date:            2026-10-28
+# Date:            2026-10-30
+# Changelog:
+#   2.3.0 - 2026-10-30: Network_Role validation (30); manifest errors carry codes; exact root-escape test with [33]; two-phase flow like the Python reference (manifest-level errors end validation before entity checks).
 # Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 # Format_Creator:  Elton Boehnen
-# RELATIONAL_ID:   acf8272b-df33-4326-b3c2-a9a2e0c4a3d9
+# RELATIONAL_ID:   4f60563a-4b04-4425-ba5e-19461f9fecad
 # -----------------------------------------------------------------------------
 
 set -o pipefail
@@ -140,6 +142,24 @@ mfdb_validator_validate_manifest() {
 # unguarded from both mfdb132_archive_mount (sticky path) and
 # mfdb132_archive_commit (validation gate) -- without this function defined,
 # both hit "command not found" at runtime.
+
+# __mfdb_escapes_root <relative_path>
+# Returns 0 (true) when the path is absolute (POSIX root or drive letter) or climbs above the MFDB root.
+# Same depth algorithm as PY _bejson_mfdb_escapes_root / JS / TS _escapesRoot.
+__mfdb_escapes_root() {
+    local p="${1//\\//}"
+    [[ "$p" == /* || "$p" =~ ^[A-Za-z]: ]] && return 0
+    local depth=0 part
+    local IFS='/'
+    for part in $p; do
+        if [[ "$part" == ".." ]]; then
+            depth=$((depth-1)); [[ $depth -lt 0 ]] && return 0
+        elif [[ -n "$part" && "$part" != "." ]]; then
+            depth=$((depth+1))
+        fi
+    done
+    return 1
+}
 
 # __mfdb_resolve_entity_path <manifest_path> <file_path_rel>
 # Mirrors Python's _resolve_entity_path: resolve file_path_rel relative to
@@ -283,6 +303,7 @@ mfdb_validator_validate_database() {
     en_idx=$(printf '%s' "$fields_json" | jq -r 'index("entity_name") // -1')
     fp_idx=$(printf '%s' "$fields_json" | jq -r 'index("file_path") // -1')
     local rc_idx seen_names="" seen_paths=""
+    local -a pass2_names=() pass2_paths=() pass2_rows=()
     rc_idx=$(printf '%s' "$fields_json" | jq -r 'index("record_count") // -1')
     if [[ "$en_idx" -lt 0 || "$fp_idx" -lt 0 ]]; then
         __mfdb_add_error "Manifest Fields must include entity_name and file_path" "Structure"
@@ -306,8 +327,8 @@ mfdb_validator_validate_database() {
             __mfdb_add_error "[$E_MFDB_DUPLICATE_ENTRY] Duplicate path: $file_path" "Values"; overall_rc=1
         fi
         seen_names+="$entity_name "; seen_paths+="$file_path "
-        if [[ "$file_path" == /* || "$file_path" == *..* ]]; then
-            __mfdb_add_error "Path traversal detected in file_path for entity '$entity_name': '$file_path'" "Values"
+        if __mfdb_escapes_root "$file_path"; then
+            __mfdb_add_error "[$E_MFDB_ENTITY_NOT_FOUND] Path traversal detected in file_path for entity '$entity_name': '$file_path'" "Values"
             overall_rc=1
             continue
         fi
@@ -317,6 +338,16 @@ mfdb_validator_validate_database() {
             overall_rc=1
             continue
         fi
+        pass2_names+=("$entity_name"); pass2_paths+=("$resolved"); pass2_rows+=("$row")
+    done <<< "$rows"
+
+    # Manifest-level errors (null/duplicate/escape/missing file) end validation here, as in the Python reference:
+    # entity files are only validated against a manifest that is itself sound.
+    [[ $overall_rc -ne 0 ]] && return 1
+
+    local pi
+    for pi in "${!pass2_names[@]}"; do
+        entity_name="${pass2_names[$pi]}"; resolved="${pass2_paths[$pi]}"; row="${pass2_rows[$pi]}"
         if ! mfdb_validator_validate_entity_file "$resolved" "$entity_name" "$manifest_path"; then
             __mfdb_add_error "Entity '$entity_name' failed validation" "Entity:$entity_name"
             overall_rc=1
@@ -329,7 +360,7 @@ mfdb_validator_validate_database() {
                 [[ "$declared" != "$actual" ]] && __mfdb_add_warning "record_count $declared in manifest != $actual rows in file" "Entity:$entity_name"
             fi
         fi
-    done <<< "$rows"
+    done
 
     # strict_fk accepted for signature parity; 104 entities carry no foreign keys (FK audit is 105-series only).
     : "$strict_fk"
@@ -455,7 +486,6 @@ mfdb_validator_detect_mfdb_in_chunk() {
 
         ($manifest.Format_Version == "104a") as $fmt_ok |
         ($manifest.Records_Type == ["mfdb"]) as $rt_ok |
-        (if ($manifest | has("Network_Role")) and ($manifest.Network_Role != null) then ($manifest.Network_Role | IN("Master", "Slave", "Standalone")) else true end) as $nr_ok |
         ($manifest.Fields // [] | map(.name)) as $mfields |
         ($mfields | index("entity_name")) as $en_idx |
         ($mfields | index("file_path")) as $fp_idx |
@@ -465,12 +495,10 @@ mfdb_validator_detect_mfdb_in_chunk() {
             "mfdb_detected": true, "valid": false,
             "db_name": ($manifest.DB_Name // null),
             "mfdb_version": ($manifest.MFDB_Version // null),
-            "network_role": ($manifest.Network_Role // null),
             "entities": [],
             "errors": (
               (if $fmt_ok then [] else ["Manifest Format_Version must be \"104a\"."] end)
               + (if $rt_ok then [] else ["Manifest Records_Type must be exactly [\"mfdb\"]."] end)
-              + (if $nr_ok then [] else ["[30] Manifest Network_Role must be Master, Slave, or Standalone."] end)
               + ["Manifest Fields must include \"entity_name\" and \"file_path\"."]
             ),
             "warnings": []
@@ -480,7 +508,6 @@ mfdb_validator_detect_mfdb_in_chunk() {
           "mfdb_detected": true,
           "db_name": ($manifest.DB_Name // null),
           "mfdb_version": ($manifest.MFDB_Version // null),
-          "network_role": ($manifest.Network_Role // null),
           "entities": [
             $manifest.Values[] as $erow |
             ($erow[$en_idx]) as $entity_name |
@@ -510,7 +537,6 @@ mfdb_validator_detect_mfdb_in_chunk() {
           "errors": (
             (if $fmt_ok then [] else ["Manifest Format_Version must be \"104a\"."] end)
             + (if $rt_ok then [] else ["Manifest Records_Type must be exactly [\"mfdb\"]."] end)
-            + (if $nr_ok then [] else ["[30] Manifest Network_Role must be Master, Slave, or Standalone."] end)
           ),
           "warnings": []
         }

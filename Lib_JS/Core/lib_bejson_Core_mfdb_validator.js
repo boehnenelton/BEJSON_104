@@ -7,12 +7,14 @@
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
  *                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
  *                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
- * Version:         2.1.4
+ * Version:         2.2.0
  * Release_Version: 300
- * Date:            2026-10-02
+ * Date:            2026-10-30
+ * Changelog:
+ *   2.2.0 - 2026-10-30: Added the manifest path-escape check (absolute and ../ paths, code 33) and Network_Role validation (code 30); parity with libraries_105 and the Python reference.
  * Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
  * Format_Creator:  Elton Boehnen
- * RELATIONAL_ID:   9e8dbc98-466c-43b4-bf5a-0cb32647ecf9
+ * RELATIONAL_ID:   8daf104e-bd9b-44cb-9ba8-38b524d406a6
  */
 
 'use strict';
@@ -45,12 +47,10 @@ const {
   E_MFDB_INVALID_ARCHIVE
 } = BEJSON_ERRORS;
 
-const VALID_NETWORK_ROLES = ['Master', 'Slave', 'Standalone'];
-
 class MFDBValidationError extends Error {
   /**
-    * Error type for MFDB validation failures (MFDBValidationError); carries a numeric code.
-    */
+   * Error type for MFDB validation failures (MFDBValidationError); carries a numeric code.
+   */
   constructor(message, code) {
     super(message);
     this.name = 'MFDBValidationError';
@@ -115,40 +115,32 @@ function _loadJson(filePath) {
  * Turns a BEJSON document's Values into {fieldName: value} objects using Fields.
  */
 function _rowsAsDicts(doc) {
-  const names = (doc.Fields || []).map(f => f.name);
-  return (doc.Values || []).map(row => Object.fromEntries(names.map((n, i) => [n, row[i]])));
+  const names = doc.Fields.map(f => f.name);
+  return doc.Values.map(row => Object.fromEntries(names.map((n, i) => [n, row[i]])));
 }
 
 /**
  * Resolves an entity's file_path (relative to the manifest) against the manifest's directory.
  */
+/** True when a manifest-relative path is absolute (POSIX root / drive letter) or climbs above the MFDB root. */
+function _bejson_mfdb_escapes_root(relativePath) {
+  if (!relativePath || typeof relativePath !== 'string') return false;
+  const normalized = relativePath.replace(/\\/g, '/');
+  if (normalized.startsWith('/') || /^[A-Za-z]:/.test(normalized)) return true;
+  let depth = 0;
+  for (const part of normalized.split('/')) {
+    if (part === '..') { depth -= 1; if (depth < 0) return true; }
+    else if (part !== '.' && part !== '') depth += 1;
+  }
+  return false;
+}
+
 function _resolveEntityPath(manifestPath, filePathRel) {
   if (!_isNode()) {
     throw new MFDBValidationError('_resolveEntityPath is only available in Node.js environments', E_MFDB_ENTITY_NOT_FOUND);
   }
   const path = require('path');
   return path.resolve(path.dirname(manifestPath), filePathRel);
-}
-
-/**
- * Relative-depth path traversal check.
- * Normalizes separators then counts directory depth segment by segment.
- * Returns true (unsafe) if any '..' drops depth below 0.
- */
-function _bejson_mfdb_escapes_root(relativePath) {
-  if (!relativePath || typeof relativePath !== 'string') return false;
-  const normalized = relativePath.replace(/\\/g, '/');
-  const parts = normalized.split('/');
-  let depth = 0;
-  for (const part of parts) {
-    if (part === '..') {
-      depth -= 1;
-      if (depth < 0) return true;
-    } else if (part !== '.' && part !== '') {
-      depth += 1;
-    }
-  }
-  return false;
 }
 
 /**
@@ -231,9 +223,9 @@ function mfdb_validator_validate_manifest(manifestPath) {
     throw new MFDBValidationError('Bad manifest Records_Type', E_MFDB_MANIFEST_RECORDS_TYPE);
   }
 
-  if (doc.Network_Role !== undefined && doc.Network_Role !== null && !VALID_NETWORK_ROLES.includes(doc.Network_Role)) {
+  if (doc.Network_Role !== undefined && doc.Network_Role !== null && !['Master', 'Slave', 'Standalone'].includes(doc.Network_Role)) {
     _mAddError(
-      `[${E_MFDB_NOT_MANIFEST}] Invalid Network_Role: ${JSON.stringify(doc.Network_Role)} (must be one of ${JSON.stringify(VALID_NETWORK_ROLES)})`,
+      `[${E_MFDB_NOT_MANIFEST}] Invalid Network_Role: ${JSON.stringify(doc.Network_Role)} (must be one of ["Master","Slave","Standalone"])`,
       'Network_Role',
     );
     throw new MFDBValidationError(`Invalid Network_Role: ${doc.Network_Role}`, E_MFDB_NOT_MANIFEST);
@@ -279,7 +271,7 @@ function mfdb_validator_validate_manifest(manifestPath) {
 
     const resolved = _resolveEntityPath(manifestPath, filePath);
     if (!_fileExists(resolved)) {
-      _mAddError(`[${E_MFDB_ENTITY_NOT_FOUND}] Entity file not found: ${filePath}`, `Values[${i}]/file_path`);
+      _mAddError(`[${E_MFDB_ENTITY_NOT_FOUND}] Entity file '${filePath}' not found (resolved: ${resolved})`, `Values[${i}]/file_path`);
       throw new MFDBValidationError(`Entity file not found: ${resolved}`, E_MFDB_ENTITY_NOT_FOUND);
     }
   }
@@ -306,7 +298,7 @@ function mfdb_validator_validate_entity_file(entityPath, checkBidirectional = tr
   try {
     bejson_validator_validate_file(entityPath);
   } catch (exc) {
-    _mAddError(`[${E_MFDB_NOT_ENTITY_FILE}] BEJSON 104 validation failed: ${exc.message}`, 'BEJSON Validation');
+    _mAddError(`[${E_MFDB_NOT_ENTITY_FILE}] BEJSON validation failed: ${exc.message}`, 'BEJSON Validation');
     throw new MFDBValidationError(exc.message, E_MFDB_NOT_ENTITY_FILE);
   }
 
@@ -319,7 +311,7 @@ function mfdb_validator_validate_entity_file(entityPath, checkBidirectional = tr
 
   const parentHierarchy = doc.Parent_Hierarchy;
   if (!parentHierarchy) {
-    _mAddError(`[${E_MFDB_NO_PARENT_HIERARCHY}] Missing Parent_Hierarchy`, 'Parent_Hierarchy');
+    _mAddError(`[${E_MFDB_NO_PARENT_HIERARCHY}] Missing Parent_Hierarchy`, 'Structure');
     throw new MFDBValidationError('Missing Parent_Hierarchy', E_MFDB_NO_PARENT_HIERARCHY);
   }
 
@@ -410,8 +402,7 @@ function mfdb_validator_validate_entity_file(entityPath, checkBidirectional = tr
 // ---------------------------------------------------------------------------
 
 /**
- * Level 3: whole MFDB -- manifest, every entity file, record_count accuracy and *_fk conventions.
- * In 104, _fk is an optional tooling standardization convention (never enforced as an error).
+ * Level 3: whole MFDB -- manifest, every entity file, record_count accuracy and *_fk conventions. strictFk makes unresolved foreign-key values errors; MFDB itself does not enforce foreign keys.
  */
 function mfdb_validator_validate_database(manifestPath, strictFk = false) {
   _mReset();
@@ -445,17 +436,14 @@ function mfdb_validator_validate_database(manifestPath, strictFk = false) {
     }
 
     if (declaredCount !== null && declaredCount !== undefined) {
-      try {
-        const edoc        = _loadJson(resolved);
-        const actualCount = (edoc.Values || []).length;
-        if (actualCount !== declaredCount) {
-          _mAddWarning(
-            `record_count ${declaredCount} in manifest != ${actualCount} rows in file`,
-            `Entity:${entityName}`,
-          );
-        }
-      } catch (e) {
-        _mAddWarning(`could not compare record_count: ${e.message}`, `Entity:${entityName}`);
+      const edoc        = _loadJson(resolved);
+      const actualCount = (edoc.Values || []).length;
+      if (actualCount !== declaredCount) {
+        _mAddWarning(
+          `Entity '${entityName}': manifest declares record_count=${declaredCount}, ` +
+          `actual=${actualCount}. Call mfdb_core_sync_all_counts() to correct.`,
+          `Entity/${entityName}/record_count`,
+        );
       }
     }
 
@@ -469,7 +457,7 @@ function mfdb_validator_validate_database(manifestPath, strictFk = false) {
         if (!targetFound) {
           _mAddWarning(
             `Entity '${entityName}': FK field '${fkField}' has no matching primary_key ` +
-            `declaration in the manifest.`,
+            `declaration in the manifest. Consider adding a Relationships header (MFDB v1.1).`,
             `Entity/${entityName}/${fkField}`,
           );
         }
@@ -709,13 +697,6 @@ function mfdb_validator_detect_mfdb_in_chunk(doc) {
   if (JSON.stringify(manifestDoc.Records_Type) !== JSON.stringify(["mfdb"])) {
     result.errors.push("Manifest Records_Type must be exactly ['mfdb'].");
   }
-  if (
-    manifestDoc.Network_Role !== undefined &&
-    manifestDoc.Network_Role !== null &&
-    !VALID_NETWORK_ROLES.includes(manifestDoc.Network_Role)
-  ) {
-    result.errors.push(`Manifest Network_Role must be one of ${JSON.stringify(VALID_NETWORK_ROLES)}.`);
-  }
 
   const manifestFields = manifestDoc.Fields || [];
   const manifestFm = {};
@@ -844,7 +825,6 @@ const exports_ = {
   E_MFDB_MISSING_REQUIRED_FIELD,
   E_MFDB_NULL_REQUIRED,
   E_MFDB_INVALID_ARCHIVE,
-  VALID_NETWORK_ROLES,
   // Class
   MFDBValidationError,
   // Internal helpers (needed by lib_bejson_Core_mfdb_core.js)
@@ -853,14 +833,14 @@ const exports_ = {
   _resolveEntityPath,
   _fileExists,
   // Validation functions
-  validate_mfdb_archive,
-  validate_mfdb_manifest,
-  validate_mfdb_entity_file,
-  validate_mfdb_database,
   mfdb_validator_validate_archive,
   mfdb_validator_validate_manifest,
   mfdb_validator_validate_entity_file,
   mfdb_validator_validate_database,
+  validate_mfdb_database,
+  validate_mfdb_entity_file,
+  validate_mfdb_manifest,
+  validate_mfdb_archive,
   mfdb_validator_get_report,
   // MFDB 1.32 chunked-package validation (relocated from bejson_chunking.js)
   mfdb_validator_is_mfdb132_package,

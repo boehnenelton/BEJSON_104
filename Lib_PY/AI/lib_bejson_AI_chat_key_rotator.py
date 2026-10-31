@@ -67,17 +67,20 @@ class ChatKeyRotator:
                 self._index = (self._index + 1) % n
                 if now >= self._cooldown_until.get(key, 0.0):
                     return key
-            best = min(self._keys, key=lambda k: self._cooldown_until.get(k, 0.0))
+            best_idx = min(range(n), key=lambda i: (self._cooldown_until.get(self._keys[i], 0.0), (i - self._index) % n))
+            best = self._keys[best_idx]
+            self._index = (best_idx + 1) % n
             logger.warning("All %d API keys are cooling off; using the one that recovers first (%s).", n, chat_key_rotator_tag(best))
             return best
 
-    def mark_failure(self, key: str) -> None:
+    def mark_failure(self, key: str, *, immediate: bool = False) -> None:
         with self._lock:
             count = self._fail_count.get(key, 0) + 1
             self._fail_count[key] = count
-            if count >= self._fail_threshold:
+            if immediate or count >= self._fail_threshold:
                 self._cooldown_until[key] = self._clock() + self._cooldown
-                logger.warning("%s hit %d failures; cooling off for %ss.", chat_key_rotator_tag(key), count, int(self._cooldown))
+                reason = "immediate cooldown" if immediate else f"{count} failures"
+                logger.warning("%s hit %s; cooling off for %ss.", chat_key_rotator_tag(key), reason, int(self._cooldown))
 
     def mark_success(self, key: str) -> None:
         with self._lock:

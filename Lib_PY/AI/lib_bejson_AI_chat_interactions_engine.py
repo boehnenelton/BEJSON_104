@@ -18,8 +18,9 @@ Changelog:
 import json
 import logging
 import re
+import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from lib_bejson_AI_bejson_errors import (
     AuthError, GenerationError, NetworkError, NoAPIKeysError, ProviderServerError, RateLimitedError,
@@ -138,7 +139,8 @@ def _typed(status: Optional[int], message: str) -> Exception:
 class InteractionsChatEngine:
     def __init__(self, rotator: ChatKeyRotator, *, timeout: int = 60, endpoint: Optional[str] = None,
                  retryable: Optional[set] = None, send_generation_config: bool = False,
-                 thinking_level: str = "high", max_retries: Optional[int] = 3) -> None:
+                 thinking_level: str = "high", max_retries: Optional[int] = 3,
+                 backoff_delay: float = 1.0, sleep_fn: Optional[Callable[[float], None]] = None) -> None:
         if _provider is None:
             raise GenerationError(f"Interactions provider unavailable ({INTERACTIONS_IMPORT_ERROR}).")
         self.endpoint = endpoint or None
@@ -148,6 +150,8 @@ class InteractionsChatEngine:
         self.timeout = int(timeout)
         self.retryable = set(retryable) if retryable else set(RETRYABLE_STATUS)
         self.max_retries = max(1, int(max_retries)) if max_retries is not None else 3
+        self.backoff_delay = max(0.0, float(backoff_delay))
+        self._sleep = sleep_fn or time.sleep
         self.last_used_key = ""
         self._api = _provider.GeminiInteractionsAPI(_KeyView(rotator), _ModelView())
 
@@ -173,6 +177,7 @@ class InteractionsChatEngine:
         limit = min(self.rotator.key_count(), self.max_retries)
         while attempt < limit:
             key = self.rotator.next_key()
+            self.last_used_key = key
             tag = chat_key_rotator_tag(key)
             try:
                 interaction = self._api.chat(list(input_parts), tools=tools or None, model_id=model,
@@ -182,6 +187,8 @@ class InteractionsChatEngine:
             except TimeoutError as e:
                 logger.error("%s timeout (attempt %d): %s", tag, attempt + 1, e)
                 self.rotator.mark_failure(key); last_exc = NetworkError(str(e)); attempt += 1
+                if attempt < limit and self.backoff_delay > 0:
+                    self._sleep(min(4.0, self.backoff_delay * attempt))
                 continue
             except RuntimeError as e:
                 status = getattr(e, "http_status", None) or _status_of(str(e))
@@ -190,20 +197,30 @@ class InteractionsChatEngine:
                     logger.warning("Interactions API rejected generation_config %s; retrying without it.", sorted(gen_cfg))
                     gen_cfg = {}
                     notices.append("The Interactions API rejected temperature/max-token/thinking settings; answered with defaults.")
+                    if self.backoff_delay > 0:
+                        self._sleep(0.5)
                     continue                                   # retried on the next key in rotation; not counted as an attempt
-                if status == 400 and tools:
-                    logger.warning("Interactions API rejected tools %s; retrying without them.", [t["type"] for t in tools])
+                if (status == 400 or (status == 429 and "quota" in str(e).lower())) and tools:
+                    logger.warning("Interactions API rejected tools %s (status %s); retrying without them.", [t["type"] for t in tools], status)
                     tools = []
                     notices.append("The Interactions API rejected the search/code tool for this request; answered without it.")
+                    if self.backoff_delay > 0:
+                        self._sleep(0.5)
                     continue
                 exc = _typed(status, str(e))
                 if status in self.retryable:
-                    self.rotator.mark_failure(key); last_exc = exc; attempt += 1
+                    self.rotator.mark_failure(key, immediate=(status == 429))
+                    last_exc = exc
+                    attempt += 1
+                    if attempt < limit and self.backoff_delay > 0:
+                        self._sleep(min(4.0, self.backoff_delay * attempt))
                     continue
                 raise exc
             except Exception as e:                             # requests.ConnectionError etc.
                 logger.error("%s network error (attempt %d): %s", tag, attempt + 1, e)
                 self.rotator.mark_failure(key); last_exc = NetworkError(f"Network error: {e}"); attempt += 1
+                if attempt < limit and self.backoff_delay > 0:
+                    self._sleep(min(4.0, self.backoff_delay * attempt))
                 continue
             self.rotator.mark_success(key)
             self.last_used_key = key

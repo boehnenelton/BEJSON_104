@@ -17,6 +17,7 @@ Changelog:
 import json
 import logging
 import re
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -72,13 +73,16 @@ def _classify_http(code: int, message: str) -> Exception:
 class GeminiChatEngine:
     def __init__(self, rotator: ChatKeyRotator, *, base_url: str = DEFAULT_BASE_URL, timeout: float = 120.0,
                  retryable_codes: Optional[Set[int]] = None, thinking_budget: int = 8192,
-                 opener: Optional[Callable[..., Any]] = None, max_retries: Optional[int] = 3) -> None:
+                 opener: Optional[Callable[..., Any]] = None, max_retries: Optional[int] = 3,
+                 backoff_delay: float = 1.0, sleep_fn: Optional[Callable[[float], None]] = None) -> None:
         self.rotator = rotator
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.retryable = set(retryable_codes) if retryable_codes else set(DEFAULT_RETRYABLE_CODES)
         self.thinking_budget = int(thinking_budget)
         self.max_retries = max(1, int(max_retries)) if max_retries is not None else 3
+        self.backoff_delay = max(0.0, float(backoff_delay))
+        self._sleep = sleep_fn or time.sleep
         self.last_used_key = ""
         self._open = opener or urllib.request.urlopen
 
@@ -130,19 +134,28 @@ class GeminiChatEngine:
                     err_body = e.read().decode("utf-8", errors="replace")
                 except Exception:
                     err_body = ""
+                finally:
+                    try:
+                        e.close()
+                    except Exception:
+                        pass
                 message = _api_message(err_body, e.code)
                 logger.error("%s HTTP %s (attempt %d): %s", tag, e.code, attempt + 1, err_body[:200])
                 exc = _classify_http(e.code, message)
                 exc.http_status = e.code
                 if e.code in self.retryable:
-                    self.rotator.mark_failure(key)
+                    self.rotator.mark_failure(key, immediate=(e.code == 429))
                     last_exc = exc
+                    if attempt + 1 < limit and self.backoff_delay > 0:
+                        self._sleep(min(4.0, self.backoff_delay * (attempt + 1)))
                     continue
                 raise exc
             except (urllib.error.URLError, OSError, TimeoutError) as e:
                 logger.error("%s network error (attempt %d): %s", tag, attempt + 1, e)
                 self.rotator.mark_failure(key)
                 last_exc = NetworkError(f"Network error: {e}")
+                if attempt + 1 < limit and self.backoff_delay > 0:
+                    self._sleep(min(4.0, self.backoff_delay * (attempt + 1)))
         raise last_exc or GenerationError("All API keys exhausted without a successful response.")
 
     # ---- response ----------------------------------------------------------
