@@ -1,0 +1,71 @@
+<svg id="svg-root" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="hdCenterGlow" cx="50%" cy="50%" r="55%">
+            <stop offset="0%" stop-color="#140a0a" stop-opacity="0.9" />
+            <stop offset="60%" stop-color="#08080c" stop-opacity="0.5" />
+            <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+
+        <!-- Ambient Backdrop -->
+        <rect width="1280" height="720" fill="url(#hdCenterGlow)" />
+
+        <!-- 8-Lane X-Axis Production Grid -->
+        <g opacity="0.06" stroke="#FFFFFF" stroke-width="1">
+          <line x1="160" y1="0" x2="160" y2="720" />
+          <line x1="320" y1="0" x2="320" y2="720" />
+          <line x1="480" y1="0" x2="480" y2="720" />
+          <line x1="640" y1="0" x2="640" y2="720" />
+          <line x1="800" y1="0" x2="800" y2="720" />
+          <line x1="960" y1="0" x2="960" y2="720" />
+          <line x1="1120" y1="0" x2="1120" y2="720" />
+        </g>
+
+        <!-- Header HUD -->
+        <text x="48" y="64" fill="#888899" font-size="14" font-family="monospace" letter-spacing="2">STAGE_DIM: 1280x720</text>
+        <text x="48" y="88" fill="#DE2626" font-size="12" font-family="monospace">RATIO: 16:9 WIDESCREEN HD</text>
+        <text x="1232" y="64" fill="#555566" font-size="12" font-family="monospace" text-anchor="end">ASPECT_QUANTIZED: Ry=32px</text>
+
+        <!-- 6-Tier Architecture Visual Matrix (L1 to L6) -->
+        <g transform="translate(140, 140)">
+          <!-- Tier Track Lines -->
+          <line x1="0" y1="60" x2="1000" y2="60" stroke="#22222a" stroke-width="2" />
+          <line x1="0" y1="180" x2="1000" y2="180" stroke="#22222a" stroke-width="2" />
+          <line x1="0" y1="300" x2="1000" y2="300" stroke="#22222a" stroke-width="2" />
+
+          <!-- Connecting Vertical Buses -->
+          <line x1="180" y1="60" x2="180" y2="300" stroke="#1d1d24" stroke-width="2" />
+          <line x1="500" y1="60" x2="500" y2="300" stroke="#1d1d24" stroke-width="2" />
+          <line x1="820" y1="60" x2="820" y2="300" stroke="#1d1d24" stroke-width="2" />
+
+          <!-- Node L6 Root Composition -->
+          <g transform="translate(500, 60)" class="anim-cycle">
+            <rect x="-80" y="-24" width="160" height="48" rx="6" fill="#141418" stroke="#383848" stroke-width="2" />
+            <circle cx="-60" cy="0" r="5" fill="#DE2626" />
+            <text x="-40" y="5" fill="#FFFFFF" font-size="12" font-family="monospace" font-weight="700">L6_COMPOSITION</text>
+          </g>
+
+          <!-- Node L5 Use Cases -->
+          <g transform="translate(180, 180)">
+            <rect x="-80" y="-24" width="160" height="48" rx="6" fill="#141418" stroke="#2c2c36" stroke-width="1.5" />
+            <text x="0" y="5" fill="#AAAAAA" font-size="11" font-family="monospace" text-anchor="middle">L5_USE_CASES</text>
+          </g>
+
+          <!-- Node L4 Presentation -->
+          <g transform="translate(820, 180)">
+            <rect x="-80" y="-24" width="160" height="48" rx="6" fill="#141418" stroke="#2c2c36" stroke-width="1.5" />
+            <text x="0" y="5" fill="#AAAAAA" font-size="11" font-family="monospace" text-anchor="middle">L4_PRESENTATION</text>
+          </g>
+
+          <!-- Node L1 Substrate & Core Entities -->
+          <g transform="translate(500, 300)" class="anim-pulse-glow">
+            <rect x="-100" y="-28" width="200" height="56" rx="8" fill="#181820" stroke="#DE2626" stroke-width="2" />
+            <polygon points="-75,-8 -65,0 -75,8" fill="#DE2626" />
+            <text x="-50" y="6" fill="#FFFFFF" font-size="13" font-family="monospace" font-weight="700">L1_SUBSTRATE</text>
+          </g>
+        </g>
+
+        <!-- Footer Metric Bar -->
+        <rect x="48" y="656" width="1184" height="2" fill="#1c1c24" />
+        <text x="640" y="684" fill="#666677" font-size="12" font-family="sans-serif" letter-spacing="3" text-anchor="middle">AUTONOMOUS MULTI-TIER EXECUTION PIPELINE</text>
+      </svg>

@@ -1,0 +1,57 @@
+<svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="badgeGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0e0e14"/>
+            <stop offset="100%" stop-color="#040406"/>
+          </linearGradient>
+          <linearGradient id="scanGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#DE2626" stop-opacity="0"/>
+            <stop offset="50%" stop-color="#DE2626" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#DE2626" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Chamfered Container Card -->
+        <polygon points="12,12 360,12 388,40 388,188 40,188 12,160" fill="url(#badgeGrad)" stroke="#22222e" stroke-width="2"/>
+        <polygon points="16,16 357,16 384,43 384,184 43,184 16,157" fill="none" stroke="#DE2626" stroke-width="1.2" stroke-dasharray="8 6" opacity="0.5"/>
+
+        <!-- Animated Scanline Sweep -->
+        <g class="anim-scan">
+          <line x1="16" y1="10" x2="384" y2="10" stroke="url(#scanGrad)" stroke-width="2"/>
+        </g>
+
+        <!-- Left Visual: Isometric Cube + Reticle Orbit -->
+        <g class="anim-rotate">
+          <circle cx="90" cy="100" r="50" fill="none" stroke="#1d1d28" stroke-width="1.5"/>
+          <circle cx="90" cy="100" r="50" fill="none" stroke="#DE2626" stroke-width="2" stroke-dasharray="24 70" stroke-linecap="round"/>
+          <circle cx="140" cy="100" r="3" fill="#DE2626"/>
+        </g>
+
+        <g class="anim-pulse">
+          <!-- Cube Top -->
+          <polygon points="90,74 116,89 90,104 64,89" fill="#FFFFFF" stroke="#DE2626" stroke-width="1.5"/>
+          <!-- Cube Left -->
+          <polygon points="90,104 64,89 64,119 90,134" fill="#242432" stroke="#36364a" stroke-width="1.5"/>
+          <!-- Cube Right -->
+          <polygon points="90,104 116,89 116,119 90,134" fill="#14141c" stroke="#36364a" stroke-width="1.5"/>
+          <line x1="90" y1="104" x2="90" y2="134" stroke="#DE2626" stroke-width="2"/>
+          <circle cx="90" cy="104" r="3" fill="#DE2626"/>
+        </g>
+
+        <!-- Vertical Divider -->
+        <line x1="165" y1="36" x2="165" y2="164" stroke="#252533" stroke-width="1.5"/>
+        <line x1="165" y1="75" x2="165" y2="125" stroke="#DE2626" stroke-width="2"/>
+
+        <!-- Right Content & Telemetry Labels -->
+        <rect x="185" y="36" width="60" height="18" rx="4" fill="#DE2626" fill-opacity="0.15" stroke="#DE2626" stroke-width="1"/>
+        <text x="215" y="49" fill="#DE2626" font-size="10" font-family="monospace" font-weight="700" text-anchor="middle">VERIFIED</text>
+
+        <text x="185" y="80" fill="#FFFFFF" font-size="16" font-family="-apple-system, sans-serif" font-weight="700" letter-spacing="1">CANVAS COMPONENT</text>
+        <text x="185" y="100" fill="#888899" font-size="11" font-family="monospace">RELEASE_VERSION: 300</text>
+        <text x="185" y="118" fill="#888899" font-size="11" font-family="monospace">SPEC: BEJSON 105a</text>
+
+        <!-- Bottom Telemetry Indicator -->
+        <rect x="185" y="142" width="180" height="8" rx="2" fill="#15151e"/>
+        <rect x="185" y="142" width="126" height="8" rx="2" fill="#DE2626"/>
+        <text x="185" y="166" fill="#555566" font-size="9" font-family="monospace">TELEMETRY SYNC: 100% OPTIMAL</text>
+      </svg>

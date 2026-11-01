@@ -1,0 +1,60 @@
+<svg id="svg-root" viewBox="0 0 840 420" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bannerBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0a0a0d" />
+            <stop offset="100%" stop-color="#020203" />
+          </linearGradient>
+          <linearGradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#DE2626" stop-opacity="0" />
+            <stop offset="50%" stop-color="#DE2626" stop-opacity="1" />
+            <stop offset="100%" stop-color="#DE2626" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+
+        <!-- Canvas Background -->
+        <rect width="840" height="420" fill="url(#bannerBgGrad)" />
+
+        <!-- 8-Lane Subtle Production Grid -->
+        <g opacity="0.08" stroke="#FFFFFF" stroke-width="1">
+          <line x1="105" y1="0" x2="105" y2="420" />
+          <line x1="210" y1="0" x2="210" y2="420" />
+          <line x1="315" y1="0" x2="315" y2="420" />
+          <line x1="420" y1="0" x2="420" y2="420" />
+          <line x1="525" y1="0" x2="525" y2="420" />
+          <line x1="630" y1="0" x2="630" y2="420" />
+          <line x1="735" y1="0" x2="735" y2="420" />
+        </g>
+
+        <!-- Dynamic Data Beams -->
+        <path d="M 40,210 L 800,210" stroke="#22222a" stroke-width="2" />
+        <path d="M 40,210 L 800,210" stroke="url(#beamGrad)" stroke-width="2" class="anim-wave" />
+
+        <!-- Floating Stage Cluster -->
+        <g class="anim-float" transform="translate(420, 210)">
+          <!-- Left Node -->
+          <circle cx="-260" cy="0" r="28" fill="#141418" stroke="#2d2d38" stroke-width="2" />
+          <circle cx="-260" cy="0" r="10" fill="#DE2626" />
+          <text x="-260" y="48" fill="#888899" font-size="11" font-family="monospace" text-anchor="middle">SOURCE</text>
+
+          <!-- Center Cube Complex -->
+          <!-- Base Hexagon -->
+          <polygon points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30" fill="#18181f" stroke="#333340" stroke-width="2" />
+          <!-- Inner Isometric Cube -->
+          <polygon points="0,-40 34,-20 0,0 -34,-20" fill="#3a3a46" stroke="#4e4e5c" stroke-width="1.2" />
+          <polygon points="-34,-20 0,0 0,40 -34,20" fill="#1f1f26" stroke="#33333e" stroke-width="1.2" />
+          <polygon points="0,0 34,-20 34,20 0,40" fill="#14141a" stroke="#262630" stroke-width="1.2" />
+          <!-- Red Core Point -->
+          <circle cx="0" cy="0" r="5" fill="#DE2626" />
+          <text x="0" y="80" fill="#FFFFFF" font-size="13" font-family="sans-serif" font-weight="700" letter-spacing="2" text-anchor="middle">PIPELINE CORE</text>
+
+          <!-- Right Node -->
+          <circle cx="260" cy="0" r="28" fill="#141418" stroke="#2d2d38" stroke-width="2" />
+          <polygon points="260,-10 268,6 252,6" fill="#DE2626" />
+          <text x="260" y="48" fill="#888899" font-size="11" font-family="monospace" text-anchor="middle">OUTPUT</text>
+        </g>
+
+        <!-- Stage Header & Footers -->
+        <text x="32" y="48" fill="#888899" font-size="12" font-family="monospace" letter-spacing="2">STAGE_DIM: 840x420</text>
+        <text x="32" y="68" fill="#DE2626" font-size="11" font-family="monospace">RATIO: 2:1 HERO BANNER</text>
+        <text x="808" y="48" fill="#555566" font-size="11" font-family="monospace" text-anchor="end">RENDER_TARGET: 420p</text>
+      </svg>

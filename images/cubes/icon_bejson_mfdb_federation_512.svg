@@ -1,0 +1,77 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bgGradMFDB" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0c0a0c"/>
+            <stop offset="100%" stop-color="#020102"/>
+          </linearGradient>
+          <linearGradient id="masterTop" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="100%" stop-color="#D0D0D0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Squircle Shell -->
+        <rect x="24" y="24" width="464" height="464" rx="108" fill="url(#bgGradMFDB)" stroke="#221820" stroke-width="3"/>
+        <rect x="32" y="32" width="448" height="448" rx="100" fill="none" stroke="#DE2626" stroke-width="1.5" stroke-dasharray="10 6" opacity="0.6"/>
+
+        <!-- Orbiting Satellite Network -->
+        <g class="anim-network">
+          <!-- Orbital Track -->
+          <circle cx="256" cy="256" r="150" fill="none" stroke="#1d151c" stroke-width="2"/>
+
+          <!-- Bus Links from Center to Satellites -->
+          <line x1="256" y1="256" x2="256" y2="106" stroke="#DE2626" stroke-width="2" class="anim-bus"/>
+          <line x1="256" y1="256" x2="406" y2="256" stroke="#DE2626" stroke-width="2" class="anim-bus"/>
+          <line x1="256" y1="256" x2="256" y2="406" stroke="#DE2626" stroke-width="2" class="anim-bus"/>
+          <line x1="256" y1="256" x2="106" y2="256" stroke="#DE2626" stroke-width="2" class="anim-bus"/>
+
+          <!-- Satellite 1 (North Slave Node) -->
+          <g transform="translate(256, 106)">
+            <polygon points="0,-16 14,-8 0,0 -14,-8" fill="#FFFFFF" stroke="#DE2626" stroke-width="1.5"/>
+            <polygon points="0,0 -14,-8 -14,8 0,16" fill="#25161c" stroke="#402430" stroke-width="1.5"/>
+            <polygon points="0,0 14,-8 14,8 0,16" fill="#140b0f" stroke="#402430" stroke-width="1.5"/>
+            <circle cx="0" cy="0" r="2.5" fill="#DE2626"/>
+          </g>
+
+          <!-- Satellite 2 (East Slave Node) -->
+          <g transform="translate(406, 256)">
+            <polygon points="0,-16 14,-8 0,0 -14,-8" fill="#FFFFFF" stroke="#DE2626" stroke-width="1.5"/>
+            <polygon points="0,0 -14,-8 -14,8 0,16" fill="#25161c" stroke="#402430" stroke-width="1.5"/>
+            <polygon points="0,0 14,-8 14,8 0,16" fill="#140b0f" stroke="#402430" stroke-width="1.5"/>
+            <circle cx="0" cy="0" r="2.5" fill="#DE2626"/>
+          </g>
+
+          <!-- Satellite 3 (South Slave Node) -->
+          <g transform="translate(256, 406)">
+            <polygon points="0,-16 14,-8 0,0 -14,-8" fill="#FFFFFF" stroke="#DE2626" stroke-width="1.5"/>
+            <polygon points="0,0 -14,-8 -14,8 0,16" fill="#25161c" stroke="#402430" stroke-width="1.5"/>
+            <polygon points="0,0 14,-8 14,8 0,16" fill="#140b0f" stroke="#402430" stroke-width="1.5"/>
+            <circle cx="0" cy="0" r="2.5" fill="#DE2626"/>
+          </g>
+
+          <!-- Satellite 4 (West Slave Node) -->
+          <g transform="translate(106, 256)">
+            <polygon points="0,-16 14,-8 0,0 -14,-8" fill="#FFFFFF" stroke="#DE2626" stroke-width="1.5"/>
+            <polygon points="0,0 -14,-8 -14,8 0,16" fill="#25161c" stroke="#402430" stroke-width="1.5"/>
+            <polygon points="0,0 14,-8 14,8 0,16" fill="#140b0f" stroke="#402430" stroke-width="1.5"/>
+            <circle cx="0" cy="0" r="2.5" fill="#DE2626"/>
+          </g>
+        </g>
+
+        <!-- Large Central Master Cube (MFDB Manifest Node) -->
+        <g class="anim-master">
+          <!-- Top Face -->
+          <polygon points="256,192 316,226 256,260 196,226" fill="url(#masterTop)" stroke="#DE2626" stroke-width="2.5"/>
+          <!-- Left Face -->
+          <polygon points="256,260 196,226 196,296 256,330" fill="#2e1a22" stroke="#4a2836" stroke-width="2"/>
+          <!-- Right Face -->
+          <polygon points="256,260 316,226 316,296 256,330" fill="#1a0e14" stroke="#4a2836" stroke-width="2"/>
+          <!-- Center Spine -->
+          <line x1="256" y1="260" x2="256" y2="330" stroke="#DE2626" stroke-width="3"/>
+          <circle cx="256" cy="260" r="4.5" fill="#DE2626" filter="drop-shadow(0 0 6px #DE2626)"/>
+        </g>
+
+        <!-- Title & Spec Labels -->
+        <text x="256" y="80" fill="#DE2626" font-size="15" font-family="monospace" font-weight="700" letter-spacing="4" text-anchor="middle">BEJSON MFDB</text>
+        <text x="256" y="98" fill="#776677" font-size="10" font-family="monospace" letter-spacing="2" text-anchor="middle">FEDERATED CUBE NETWORK</text>
+      </svg>

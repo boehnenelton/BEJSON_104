@@ -1,0 +1,56 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bgGradNested" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0b0b12"/>
+            <stop offset="100%" stop-color="#020204"/>
+          </linearGradient>
+          <linearGradient id="innerTop" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="100%" stop-color="#DE2626"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Squircle Shell -->
+        <rect x="24" y="24" width="464" height="464" rx="108" fill="url(#bgGradNested)" stroke="#1e1e2c" stroke-width="3"/>
+        <rect x="32" y="32" width="448" height="448" rx="100" fill="none" stroke="#DE2626" stroke-width="1.5" stroke-dasharray="10 6" opacity="0.5"/>
+
+        <!-- Outer Wireframe Cube (Parent Container, Depth 0) -->
+        <g class="anim-wire">
+          <!-- Top Wire -->
+          <polygon points="256,120 376,188 256,256 136,188" fill="none" stroke-linecap="round"/>
+          <!-- Base Wire -->
+          <polygon points="256,392 376,324 376,188 256,256" fill="none" stroke-linecap="round"/>
+          <polygon points="256,392 136,324 136,188 256,256" fill="none" stroke-linecap="round"/>
+          <!-- Outer Center Spine -->
+          <line x1="256" y1="256" x2="256" y2="392" stroke="#DE2626" stroke-width="2"/>
+        </g>
+
+        <!-- Dynamic Ray Connectors from Outer Vertices to Center -->
+        <line x1="136" y1="188" x2="216" y2="236" stroke="#DE2626" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+        <line x1="376" y1="188" x2="296" y2="236" stroke="#DE2626" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+        <line x1="256" y1="120" x2="256" y2="216" stroke="#DE2626" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+        <line x1="256" y1="392" x2="256" y2="296" stroke="#DE2626" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+
+        <!-- Inner Solid Cube (Nested Child Entity, Depth 1) -->
+        <g class="anim-inner">
+          <!-- Top Face -->
+          <polygon points="256,216 296,236 256,256 216,236" fill="url(#innerTop)" stroke="#DE2626" stroke-width="2"/>
+          <!-- Left Face -->
+          <polygon points="256,256 216,236 216,276 256,296" fill="#301518" stroke="#DE2626" stroke-width="2"/>
+          <!-- Right Face -->
+          <polygon points="256,256 296,236 296,276 256,296" fill="#1b0c0e" stroke="#DE2626" stroke-width="2"/>
+          <!-- Center Spine -->
+          <line x1="256" y1="256" x2="256" y2="296" stroke="#FFFFFF" stroke-width="2"/>
+          <circle cx="256" cy="256" r="3.5" fill="#FFFFFF"/>
+        </g>
+
+        <!-- Corner Micro-Brackets -->
+        <path d="M 64 64 L 76 64 M 64 64 L 64 76" stroke="#DE2626" stroke-width="2" fill="none"/>
+        <path d="M 448 64 L 436 64 M 448 64 L 448 76" stroke="#DE2626" stroke-width="2" fill="none"/>
+        <path d="M 64 448 L 76 448 M 64 448 L 64 436" stroke="#DE2626" stroke-width="2" fill="none"/>
+        <path d="M 448 448 L 436 448 M 448 448 L 448 436" stroke="#DE2626" stroke-width="2" fill="none"/>
+
+        <!-- Labels -->
+        <text x="256" y="440" fill="#DE2626" font-size="15" font-family="monospace" font-weight="700" letter-spacing="4" text-anchor="middle">BEJSON NESTED</text>
+        <text x="256" y="458" fill="#666677" font-size="10" font-family="monospace" letter-spacing="2" text-anchor="middle">RECURSIVE CELL PAYLOAD</text>
+      </svg>

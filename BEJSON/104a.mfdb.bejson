@@ -60,14 +60,14 @@
       "Library_Changes",
       "data/library_changes.bejson",
       "Library change log, keyed by LIBRARY_FAMILY + LANGUAGE + LIBRARY_FILE",
-      134,
+      135,
       "2.2",
       null
     ],
     [
       "Families",
       "data/families.bejson",
-      "Registry of every family x language combo and whether it has an owned error registry file \u2014 feeds the Reports dropdown and future CLI tooling",
+      "Registry of every family x language combo and whether it has an owned error registry file — feeds the Reports dropdown and future CLI tooling",
       35,
       "1.1",
       null
@@ -76,7 +76,7 @@
       "Dependencies",
       "data/dependencies.bejson",
       "Import/require/source edges between library files across all four languages, so an AI or tool can check for breakage before deleting, moving, or renaming a file",
-      219,
+      211,
       "1.1",
       null
     ],

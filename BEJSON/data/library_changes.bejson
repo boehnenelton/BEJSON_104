@@ -454,7 +454,7 @@
       "PY",
       "lib_bejson_AI_bejson_interactions.py",
       "2026-07-24",
-      "New file. Implements the Interactions API (POST /v1beta/interactions) via GeminiInteractionsAPI: create_interaction() raw wrapper, chat() full function-call loop, tool_direct() single-shot SI-injection path \u2014 1:1 mirrors of the confirmed-working client call chain documented in GEMINI_INTERACTIONS_INCIDENT_REPORT.md. Reuses GeminiKeyRegistry/GeminiModelRegistry from lib_bejson_AI_bejson_gemini.py rather than duplicating registry logic. Includes build_text_attachment/build_image_attachment/build_document_attachment/build_attachment helpers (text->no base64, image/document->base64+mime_type; 'inline_data' is deliberately not used, see Incident 5). Uses AI family error codes E_AI_NO_API_KEYS/E_AI_INTERACTIONS_HTTP_ERROR/E_AI_INTERACTIONS_TIMEOUT. Verified end-to-end: chat() two-round function-call exchange, tool_direct() system-instruction injection, and build_attachment() text-file dispatch all tested and passing before this changelog entry was written."
+      "New file. Implements the Interactions API (POST /v1beta/interactions) via GeminiInteractionsAPI: create_interaction() raw wrapper, chat() full function-call loop, tool_direct() single-shot SI-injection path — 1:1 mirrors of the confirmed-working client call chain documented in GEMINI_INTERACTIONS_INCIDENT_REPORT.md. Reuses GeminiKeyRegistry/GeminiModelRegistry from lib_bejson_AI_bejson_gemini.py rather than duplicating registry logic. Includes build_text_attachment/build_image_attachment/build_document_attachment/build_attachment helpers (text->no base64, image/document->base64+mime_type; 'inline_data' is deliberately not used, see Incident 5). Uses AI family error codes E_AI_NO_API_KEYS/E_AI_INTERACTIONS_HTTP_ERROR/E_AI_INTERACTIONS_TIMEOUT. Verified end-to-end: chat() two-round function-call exchange, tool_direct() system-instruction injection, and build_attachment() text-file dispatch all tested and passing before this changelog entry was written."
     ],
     [
       "MFDB",
@@ -966,6 +966,13 @@
       "Lib_JS/Diagrams/lib_bejson_Diagrams_diagrams_core.js",
       "2026-10-30",
       "1.2.0: Added JavaScript UMD/CommonJS Diagrams v3 family (errors, core, validator, ai, cli_tools) wired to ../Core."
+    ],
+    [
+      "Core",
+      "Package",
+      "libraries_104 (root/tree)",
+      "2026-10-31",
+      "5.5.1 PKG15: junk strip. Removed Core cli CLI_Doc_Chunker, showcase (PY and SH), gemini_showcase_intro, bejson_tools.zip, 3 orphan scripts, 3 orphan openai config files, 2 example files and all __pycache__; nothing referenced them. No library code changed."
     ]
   ]
 }

@@ -34,4 +34,3 @@ Every Core library file (including the nesting modules) has a `Format_Scope:` he
 - Error names such as `E_MFDB_CORE_LOCK_FAILED` live in the shared registry; modules outside MFDB may raise them.
 - `bejson_core_create_104db` / `createEmpty104db` / `validate104db` are the 104db-only entry points in otherwise generic modules.
 - `SCHEMA_MFDB_ENTITY_v5` / `SCHEMA_MFDB_MANIFEST_v5` describe MFDB entity and manifest rows. `SCHEMA_PROJECT_v140` uses a lowercase `record_type_parent` column that is not a valid 104db discriminator (the spec name is `Record_Type_Parent`).
-- `Doc_Chunker` (cli) stores its documents as real 104db files (`*.104db.bejson`).

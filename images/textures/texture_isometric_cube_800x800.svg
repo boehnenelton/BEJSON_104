@@ -1,0 +1,61 @@
+<svg class="canvas-fill" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Seamless 128x128 Isometric Cube Pattern -->
+        <pattern id="isometric-cube-pattern" width="128" height="128" patternUnits="userSpaceOnUse" class="anim-drift">
+          <!-- Background cell fill -->
+          <rect width="128" height="128" fill="#050508"/>
+
+          <!-- Primary Isometric Cube Unit A (Center: 64, 64) -->
+          <!-- Top Face -->
+          <polygon points="64,36 96,52 64,68 32,52" fill="#181820" stroke="#2c2c36" stroke-width="1"/>
+          <!-- Left Face -->
+          <polygon points="32,52 64,68 64,100 32,84" fill="#0d0d12" stroke="#2c2c36" stroke-width="1"/>
+          <!-- Right Face -->
+          <polygon points="64,68 96,52 96,84 64,100" fill="#13131a" stroke="#2c2c36" stroke-width="1"/>
+          <!-- Isometric Accent Floating Top (104a Taxonomy) -->
+          <polygon points="64,28 88,40 64,52 40,40" fill="none" stroke="#DE2626" stroke-width="1.2" opacity="0.85"/>
+
+          <!-- Secondary Half-Offset Cube Units for Seamless Edge Tiling -->
+          <!-- Top-Left Corner Cube (0, 0) -->
+          <polygon points="0,-28 32,-12 0,4 -32,-12" fill="#181820" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="-32,-12 0,4 0,36 -32,20" fill="#0d0d12" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="0,4 32,-12 32,20 0,36" fill="#13131a" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="0,-36 24,-24 0,-12 -24,-24" fill="none" stroke="#DE2626" stroke-width="1.2" opacity="0.85"/>
+
+          <!-- Top-Right Corner Cube (128, 0) -->
+          <polygon points="128,-28 160,-12 128,4 96,-12" fill="#181820" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="96,-12 128,4 128,36 96,20" fill="#0d0d12" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="128,4 160,-12 160,20 128,36" fill="#13131a" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="128,-36 152,-24 128,-12 104,-24" fill="none" stroke="#DE2626" stroke-width="1.2" opacity="0.85"/>
+
+          <!-- Bottom-Left Corner Cube (0, 128) -->
+          <polygon points="0,100 32,116 0,132 -32,116" fill="#181820" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="-32,116 0,132 0,164 -32,148" fill="#0d0d12" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="0,132 32,116 32,148 0,164" fill="#13131a" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="0,92 24,104 0,116 -24,104" fill="none" stroke="#DE2626" stroke-width="1.2" opacity="0.85"/>
+
+          <!-- Bottom-Right Corner Cube (128, 128) -->
+          <polygon points="128,100 160,116 128,132 96,116" fill="#181820" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="96,116 128,132 128,164 96,148" fill="#0d0d12" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="128,132 160,116 160,148 128,164" fill="#13131a" stroke="#2c2c36" stroke-width="1"/>
+          <polygon points="128,92 152,104 128,116 104,104" fill="none" stroke="#DE2626" stroke-width="1.2" opacity="0.85"/>
+
+          <!-- Pulsing Micro-Nodes on Vertices -->
+          <circle cx="64" cy="68" r="2" class="anim-pulse"/>
+          <circle cx="0" cy="4" r="2" class="anim-pulse"/>
+          <circle cx="128" cy="4" r="2" class="anim-pulse"/>
+          <circle cx="0" cy="132" r="2" class="anim-pulse"/>
+          <circle cx="128" cy="132" r="2" class="anim-pulse"/>
+        </pattern>
+      </defs>
+
+      <!-- Fill entire canvas with seamless pattern -->
+      <rect width="100%" height="100%" fill="url(#isometric-cube-pattern)"/>
+
+      <!-- Ambient Vignette -->
+      <radialGradient id="vignette" cx="50%" cy="50%" r="60%">
+        <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0.85"/>
+      </radialGradient>
+      <rect width="100%" height="100%" fill="url(#vignette)" pointer-events="none"/>
+    </svg>

@@ -1,0 +1,40 @@
+<svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="cardBg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0f0f16"/>
+            <stop offset="100%" stop-color="#040407"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Container Box -->
+        <rect x="12" y="12" width="296" height="296" rx="20" fill="url(#cardBg)" stroke="#222230" stroke-width="2"/>
+        <rect x="18" y="18" width="284" height="284" rx="16" fill="none" stroke="#DE2626" stroke-width="1" stroke-dasharray="6 4" opacity="0.4"/>
+
+        <!-- Header Bar -->
+        <text x="32" y="44" fill="#FFFFFF" font-size="12" font-family="monospace" font-weight="700" letter-spacing="2">SYSTEM METRIC</text>
+        <circle cx="282" cy="40" r="4" fill="#DE2626"/>
+        <line x1="32" y1="54" x2="288" y2="54" stroke="#1f1f2a" stroke-width="1.5"/>
+
+        <!-- Radial Gauge -->
+        <g class="anim-pulse">
+          <!-- Background Track -->
+          <circle cx="160" cy="145" r="70" fill="none" stroke="#1a1a24" stroke-width="8"/>
+          <!-- Active Value Arc (~82%) -->
+          <circle cx="160" cy="145" r="70" fill="none" stroke="#DE2626" stroke-width="8" stroke-dasharray="360 80" stroke-dashoffset="100" stroke-linecap="round"/>
+        </g>
+
+        <!-- Orbiting Ticks -->
+        <g class="anim-rotate">
+          <circle cx="160" cy="145" r="82" fill="none" stroke="#DE2626" stroke-width="1.5" stroke-dasharray="12 40" stroke-linecap="round" opacity="0.6"/>
+        </g>
+
+        <!-- Center Typography -->
+        <text x="160" y="142" fill="#FFFFFF" font-size="36" font-family="-apple-system, sans-serif" font-weight="800" text-anchor="middle">99.8%</text>
+        <text x="160" y="164" fill="#888899" font-size="11" font-family="monospace" text-anchor="middle">PARITY INDEX</text>
+
+        <!-- Bottom Status Bar -->
+        <rect x="32" y="245" width="256" height="36" rx="8" fill="#12121a" stroke="#252535" stroke-width="1"/>
+        <text x="44" y="267" fill="#888899" font-size="10" font-family="monospace">STATUS:</text>
+        <text x="96" y="267" fill="#FFFFFF" font-size="10" font-family="monospace" font-weight="700">OPTIMAL / LOCKED</text>
+        <circle cx="268" cy="263" r="3.5" fill="#DE2626"/>
+      </svg>
