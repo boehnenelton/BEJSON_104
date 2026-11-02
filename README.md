@@ -1067,3 +1067,101 @@ The table below contrasts BEJSON 104 Core with prevailing database and data seri
 | **Termux / Android Support**| Requires compiled pkg | Heavy build toolchain | Incompatible / Heavy | Full stdlib support | **100% Native Shell, Python, JS, TS** |
 
 The Core Family proves that an AI-native database does not require bloated server runtimes or complex binary file formats. By re-engineering tabular storage around the fundamental constraints of language models—token limits, context caching, autoregressive attention, and positional determinism—BEJSON 104 delivers a reliable, high-speed, zero-dependency storage engine for the next generation of autonomous intelligent software.
+
+
+---
+
+## 14. BEJSON AI Library Family (`Lib_PY/AI/`) & Local Edge Runtime Engine
+
+The **BEJSON AI Library Family** provides a unified artificial intelligence substrate for autonomous agents, local-first workflows, and multi-provider cloud inference within Elton Boehnen's zero-SQL operating system. Operating across 55 specialized Python modules and native BEJSON 104a configuration stores, the family bridges high-throughput cloud models with on-device edge execution.
+
+```text
++---------------------------------------------------------------------------------------------------+
+|                                     BEJSON OPERATING ECOSYSTEM                                    |
+|                                                                                                   |
+|  +--------------------+    +-----------------------+    +--------------------------------------+  |
+|  | CLI_AI Executable  |    | Antigravity CLI / AGY |    | Web Workstation / Termux Dashboard   |  |
+|  | (main.py / CLI)    |    | (Agent Subsystems)    |    | (Flask / REST / WebSocket)           |  |
+|  +---------+----------+    +-----------+-----------+    +-------------------+------------------+  |
+|            |                           |                                    |                     |
+|            +---------------------------+------------------------------------+                     |
+|                                        |                                                          |
+|                                        v                                                          |
+|       +------------------------------------------------------------------+                        |
+|       |                     BEJSON AI LIBRARY FAMILY                     |                        |
+|       |                  (libraries_104/Lib_PY/AI/)                      |                        |
+|       |                                                                  |                        |
+|       |  +------------------------------------------------------------+  |                        |
+|       |  |  lib_bejson_AI_ai_dispatch.py (Master API Dispatcher)       |  |                        |
+|       |  |  - Provider Resolution & Normalization                     |  |                        |
+|       |  |  - Multi-Key Round Robin & Rate Limit Failover             |  |                        |
+|       |  |  - Protocol Shimming: Gemini REST, OpenAI REST, Edge REST  |  |                        |
+|       |  +--------------+------------------------------+--------------+  |                        |
+|       |                 |                              |                 |                        |
+|       |                 v                              v                 |                        |
+|       |  +------------------------------+  +--------------------------+  |                        |
+|       |  | Context Bubble Engine v2.1.0 |  | Brain MFDB Memory Engine |  |                        |
+|       |  | (Ranked Allotments / Donors) |  | (Single-Writer Atomic)   |  |                        |
+|       |  +--------------+---------------+  +------------+-------------+  |                        |
+|       |                 |                               |                |                        |
+|       |                 +---------------+---------------+                |                        |
+|       |                                 |                                |                        |
+|       +---------------------------------+--------------------------------+                        |
+|                                         |                                                         |
+|                     +-------------------+--------------------+                            |
+|                     |                                        |                                    |
+|                     v                                        v                                    |
+|  +------------------------------------+    +-----------------------------------+                  |
+|  |       LOCAL EDGE RUNTIMES          |    |       CLOUD PROVIDER MESH         |                  |
+|  |                                    |    |                                   |                  |
+|  |  +------------------------------+  |    |  +-----------------------------+  |                  |
+|  |  | LiteRT-LM Local Edge Engine  |  |    |  | Google Gemini (REST / SDK)  |  |                  |
+|  |  | - Gemma 4 (E2B / E4B / 12B)  |  |    |  +-----------------------------+  |                  |
+|  |  | - Native Fast In-Memory KV   |  |    |  +-----------------------------+  |                  |
+|  |  | - Dual Protocol: REST/OpenAI|  |    |  | Groq Cloud (Llama/Mixtral)  |  |                  |
+|  |  +------------------------------+  |    |  +-----------------------------+  |                  |
+|  |  +------------------------------+  |    |  +-----------------------------+  |                  |
+|  |  | Ollama Local Engine         |  |    |  | OpenRouter / TokenRouter    |  |                  |
+|  |  | - localhost:11434 REST       |  |    |  +-----------------------------+  |                  |
+|  |  | - Llama 3 / Mistral / Qwen   |  |    |  +-----------------------------+  |                  |
+|  |  +------------------------------+  |    |  | xAI Grok / HuggingFace API  |  |                  |
+|  |                                    |    |  +-----------------------------+  |                  |
+|  +------------------------------------+    +-----------------------------------+                  |
+|                                                                                                   |
+|                                        v                                                          |
+|       +------------------------------------------------------------------+                        |
+|       |                    PERSISTENCE & REGISTRY LAYER                  |                        |
+|       |                      (BEJSON 104 / 105 MFDB)                     |                        |
+|       |                                                                  |                        |
+|       |  - Master MFDB Manifest: 104a.mfdb.bejson                        |                        |
+|       |  - Brain Entity Tables: memories, facts, episodes                |                        |
+|       |  - Provider Registry: gemini_model_registry.104a.bejson          |                        |
+|       |  - Budget Ledger: config/context_bubble.bejson                   |                        |
+|       |  - Snapshots: data/brain/snapshots/*.mfdb132.bejson              |                        |
+|       |  - O(1) Provenance-Guarded In-Memory Field-Map Caches             |                        |
+|       +------------------------------------------------------------------+                        |
++---------------------------------------------------------------------------------------------------+
+```
+
+### 14.1 Key Architecture Pillars
+
+1. **Multi-Provider Dispatcher (`lib_bejson_AI_ai_dispatch.py`)**:
+   Zero-dependency HTTP invocation across 12+ backends: Google Gemini (Direct REST & GenAI SDK), Groq Cloud, OpenRouter, TokenRouter, xAI Grok, Hugging Face, OpenAI, Ollama Cloud, Ollama Local, and Google LiteRT-LM. Features automated multi-key round-robin rotation, exponential backoff with randomized jitter, and standardized `AIResponse` envelopes.
+
+2. **LiteRT-LM Local Edge Engine (`lib_bejson_AI_bejson_litertlm.py`)**:
+   On-device inference powered by Google LiteRT-LM (formerly TensorFlow Lite) optimized for Gemma 4 (E2B, E4B, 12B) and Qwen 3.5. Supports dual-protocol REST exposure (`/v1beta/models/{model}:generateContent` and `/v1/chat/completions`), persistent in-memory KV cache reuse, thinking-channel extraction, and folder-scoped function execution sandboxes.
+
+3. **Dynamic Context Bubble v2.1.0 (`lib_bejson_AI_ai_context_bubble.py`)**:
+   Deterministic token budgeting with 8 priority-ranked partitions: `system_rules` (Rank 1), `brain_pinned` (Rank 2), `user_query` (Rank 3), `tool_results` (Rank 4), `chat_history` (Rank 5), `brain_recall` (Rank 6), `context_files` (Rank 7), and `scratch_pad` (Rank 8). Features donor-draw borrowing, spill-up allocation cascading, progressive head-tail slicing (15% head / 85% tail), and Policy §10.9 boundary sanitization.
+
+4. **Brain MFDB Persistent Memory Engine (`lib_bejson_AI_brain_store.py`)**:
+   Single-writer persistent cognitive memory coordinated by `104a.mfdb.bejson` manifests across dedicated entity tables (`memories.bejson`, `facts.bejson`, `episodes.bejson`). Enforces untrusted AI write guards, anti-hallucination fact verification, cyclic reinforcement prevention, and 3-tier snapshotting (hourly diffs, daily `.mfdb132` containers, pre-reset cold archives).
+
+5. **Audio / Speech / Transcription Stack (`lib_bejson_AI_ai_transcribe_dispatch.py`)**:
+   Unified audio transcription with resilient fallback cascading (Groq Whisper Large v3 -> Gemini Multimodal REST -> OpenRouter Whisper -> Local Edge Whisper), chunked HTTP streaming, speaker diarization normalization, and Gemini neural Text-to-Speech (TTS) voice synthesis.
+
+6. **Agent Profiles & Interactive REPL (`lib_bejson_AI_bejson_interactions.py`)**:
+   Multi-turn conversational engines, dynamic YAML/BEJSON profile compilation, step-by-step turn debugging, headless web page extraction, and colorized terminal TUI visualizers.
+
+For the exhaustive 500-feature specification and complete visual ASCII architecture diagrams, refer to the authoritative report at:
+`/storage/emulated/0/Admin/Resources/Reports/bejson_ai_library_family_architectural_overview.md`
