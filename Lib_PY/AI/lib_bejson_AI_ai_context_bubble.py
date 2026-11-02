@@ -50,13 +50,30 @@ Description:    Context Bubble engine v2 -- ranked allotments with percentage
                 pool, ai_bubble_register_section/assemble.  The amnesia /
                 compression helpers are carried over unchanged at the bottom.
 
-Version:        2.0.0
+Version:        2.1.0
 Date:           2026-10-20
 Author:         Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
-RELATIONAL_ID:  a7c3e915-2f48-4d6b-9e07-3b81d5c4f2a9
+RELATIONAL_ID:  319e36d3-ae83-478a-9947-b68ef79bcc2a
 Release_Version: 300
 
 Changelog:
+  2.1.0 (2026-10-20) -- Audit / hardening / optimisation pass:
+        * Non-finite or out-of-range pct/rank/interval in context_bubble.bejson no
+          longer crash (clamped / defaulted); a corrupt config runs on the registered
+          defaults in memory instead of silently producing an empty bubble.
+        * State file values are type-checked (a hand-edited "turn": "x" crashed).
+        * An allotment missing or stale in the bubble chunk is now an integrity failure
+          (destroy + rebuild once) instead of being silently dropped on reuse turns.
+        * ai_bubble_prepare() never loses policy/attachments to a disk/state problem:
+          any build failure falls back to an unchunked in-memory bubble, then to
+          policy-only.  The next turn recovers on its own.
+        * Wrapper markers inside content are defanged ([END CONTEXT BUBBLE] spoofing).
+        * Sources are capped at budget + 1 KB before chunking/hashing: a 26 MB
+          attachment used to write a 24.6 MB bubble and cost ~300 ms per rebuild /
+          ~100 ms per turn; now ~216 KB and ~39 ms / ~18 ms.
+        * An allotment too small to hold its header + a useful slice is dropped and
+          its grant re-spilled to the others.
+        * Registry mutations are locked; warn-once for the allotment-cap warning.
   2.0.0 (2026-10-20) -- Ground-up rebuild: ranked allotments, spill-up with
         even donor draw, per-allotment + whole-bubble Chunked-104a chunking
         with hash verification, 5-turn / change-triggered rebuild,
@@ -68,6 +85,7 @@ Changelog:
 import hashlib
 import json
 import logging
+import math
 import os
 import re
 import shutil
@@ -78,7 +96,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +152,9 @@ KEEP_END = "end"
 _NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
 _UNASSIGNED = "(unassigned)"
 _MIN_USEFUL_CHARS = 40
+_SOURCE_SLACK_CHARS = 1024     # source cap = budget + slack, so over-budget sources always render as truncated
+_MAX_RANK = 1_000_000
+_MAX_INTERVAL = 1_000_000
 _TRUNC_MARK_TAIL = "\n[...truncated: over allotment budget]"
 _TRUNC_MARK_HEAD = "[...earlier content truncated: over allotment budget]\n"
 _WRAP_OPEN = "[CONTEXT BUBBLE]\n"
@@ -186,6 +207,13 @@ class _Registered:
 
 
 _registry: Dict[str, _Registered] = {}
+_warned: set = set()   # warn-once keys (avoids per-turn log spam)
+
+
+def _warn_once(key: str, msg: str, *args) -> None:
+    if key not in _warned:
+        _warned.add(key)
+        logger.warning(msg, *args)
 
 
 def ai_bubble_register_allotment(
@@ -214,33 +242,41 @@ def ai_bubble_register_allotment(
     if not _NAME_RE.match(name):
         logger.error("[AIContextBubble] Invalid allotment name %r (use a-z, 0-9, _).", name)
         return False
-    if name not in _registry and len(_registry) >= BUBBLE_MAX_ALLOTMENTS:
-        logger.error("[AIContextBubble] Cannot register '%s': BUBBLE_MAX_ALLOTMENTS=%d reached.",
-                     name, BUBBLE_MAX_ALLOTMENTS)
+    if not callable(builder_fn):
+        logger.error("[AIContextBubble] Allotment '%s': builder_fn is not callable.", name)
         return False
-    if refresh not in (REFRESH_STABLE, REFRESH_TURN):
-        refresh = REFRESH_STABLE
-    if keep not in (KEEP_START, KEEP_END):
-        keep = KEEP_START
-    _registry[name] = _Registered(
-        name=name, label=(label or name).strip(), builder=builder_fn, pct=pct,
-        rank=rank, enabled=enabled, refresh=refresh, keep=keep,
-        directive=(directive or "").strip(),
-    )
+    with _LOCK:
+        if name not in _registry and len(_registry) >= BUBBLE_MAX_ALLOTMENTS:
+            logger.error("[AIContextBubble] Cannot register '%s': BUBBLE_MAX_ALLOTMENTS=%d reached.",
+                         name, BUBBLE_MAX_ALLOTMENTS)
+            return False
+        if refresh not in (REFRESH_STABLE, REFRESH_TURN):
+            refresh = REFRESH_STABLE
+        if keep not in (KEEP_START, KEEP_END):
+            keep = KEEP_START
+        _registry[name] = _Registered(
+            name=name, label=(label or name).strip(), builder=builder_fn, pct=pct,
+            rank=rank, enabled=enabled, refresh=refresh, keep=keep,
+            directive=(directive or "").strip(),
+        )
     return True
 
 
 def ai_bubble_unregister_allotment(name: str) -> bool:
-    return _registry.pop(name, None) is not None
+    with _LOCK:
+        return _registry.pop(name, None) is not None
 
 
 def ai_bubble_clear_allotments() -> None:
     """Removes every registered allotment (tests / re-init)."""
-    _registry.clear()
+    with _LOCK:
+        _registry.clear()
+        _warned.clear()
 
 
 def ai_bubble_registered_names() -> List[str]:
-    return list(_registry)
+    with _LOCK:
+        return list(_registry)
 
 
 # ── Config (context_bubble.bejson) ────────────────────────────────────────────
@@ -260,19 +296,26 @@ def _to_bool(value: Any, default: bool = True) -> bool:
 
 
 def _to_float(value: Any, default: float = 0.0) -> float:
+    """Finite float clamped to 0..100 (a percentage); anything else -> default."""
     try:
         v = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
-    return v if v >= 0 else 0.0
+    if not math.isfinite(v):
+        return default
+    return min(100.0, max(0.0, v))
 
 
-def _to_int(value: Any, default: int) -> int:
+def _to_int(value: Any, default: int, maximum: int = _MAX_RANK) -> int:
+    """Integer in 1..maximum; non-numeric, non-finite or < 1 -> default."""
     try:
-        v = int(float(value))
-    except (TypeError, ValueError):
+        f = float(value)
+        if not math.isfinite(f):
+            return default
+        v = int(f)
+    except (TypeError, ValueError, OverflowError):
         return default
-    return v if v >= 1 else default
+    return min(maximum, v) if v >= 1 else default
 
 
 def _row_from_registered(reg: _Registered, pct: float, rank: int) -> list:
@@ -348,8 +391,22 @@ def ai_bubble_config_load(config_dir: Path) -> dict:
     doc = bejson_core_load_file(str(path))
     interval = DEFAULT_REBUILD_INTERVAL_TURNS
     rows: List[dict] = []
+    if not isinstance(doc, dict) or not isinstance(doc.get("Values"), list):
+        # Unreadable / mangled file: never go silent.  Run on the registered
+        # defaults (even split) in memory and leave the user's file alone.
+        _warn_once("cfg-corrupt", "[AIContextBubble] %s unreadable; using registered defaults in memory.", path)
+        with _LOCK:
+            regs = list(_registry.values())
+        even = round(100.0 / len(regs), 2) if regs else 0.0
+        for i, reg in enumerate(regs, start=1):
+            rows.append({"name": reg.name, "rank": reg.rank or i,
+                         "pct": reg.pct if reg.pct is not None else even, "enabled": reg.enabled,
+                         "refresh": reg.refresh, "keep": reg.keep, "label": reg.label,
+                         "directive": reg.directive})
+        rows.sort(key=lambda r: (r["rank"], r["name"]))
+        return {"interval": interval, "rows": rows}
     if isinstance(doc, dict):
-        interval = _to_int(doc.get("Rebuild_Interval_Turns"), DEFAULT_REBUILD_INTERVAL_TURNS)
+        interval = _to_int(doc.get("Rebuild_Interval_Turns"), DEFAULT_REBUILD_INTERVAL_TURNS, _MAX_INTERVAL)
         fmap = bejson_core_get_field_map(doc)
         idx = {k: fmap.get(k) for k in ("name", "rank", "pct", "enabled", "refresh", "keep", "label", "directive")}
         seen = set()
@@ -521,9 +578,23 @@ def _sha(text: str) -> str:
 
 
 def _clean_text(text: Any) -> str:
+    """Valid UTF-8, stripped, and with the bubble's own wrapper markers
+    defanged so content can never fake the start/end of the bubble."""
     if not isinstance(text, str):
         return ""
-    return text.encode("utf-8", "replace").decode("utf-8").strip()
+    text = text.encode("utf-8", "replace").decode("utf-8").strip()
+    if "CONTEXT BUBBLE]" in text:
+        text = text.replace("[END CONTEXT BUBBLE]", "[END CONTEXT-BUBBLE]").replace("[CONTEXT BUBBLE]", "[CONTEXT-BUBBLE]")
+    return text
+
+
+def _cap_source(text: str, limit: int, keep: str) -> str:
+    """Bounds a source to `limit` chars (budget + slack), keeping the side
+    that survives truncation anyway.  Nothing beyond the whole bubble budget
+    can ever be sent, so storing/hashing it is pure waste."""
+    if len(text) <= limit:
+        return text
+    return text[-limit:] if keep == KEEP_END else text[:limit]
 
 
 def _load_state(root: Path) -> dict:
@@ -531,11 +602,20 @@ def _load_state(root: Path) -> dict:
     try:
         with open(p, "r", encoding="utf-8") as fh:
             data = json.load(fh)
-        if isinstance(data, dict):
-            return data
     except (OSError, ValueError):
-        pass
-    return {}
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    for key in ("turn", "turns_since_rebuild", "rebuild_count"):
+        v = data.get(key, 0)
+        data[key] = v if isinstance(v, int) and not isinstance(v, bool) and v >= 0 else 0
+    for key in ("stable", "volatile"):
+        v = data.get(key)
+        data[key] = {k: x for k, x in v.items() if isinstance(k, str) and isinstance(x, str)} if isinstance(v, dict) else {}
+    if not isinstance(data.get("config_sig"), str):
+        data.pop("config_sig", None)
+    data["package_version"] = str(data.get("package_version", "0"))
+    return data
 
 
 def _save_state(root: Path, state: dict) -> None:
@@ -665,10 +745,14 @@ def _constants(config_dir: Path) -> dict:
 
 def _run_builders(active: List[dict], ctx: BubbleContext) -> Dict[str, str]:
     texts: Dict[str, str] = {}
+    limit = ctx.budget_chars + _SOURCE_SLACK_CHARS
     for row in active:
-        reg = _registry[row["name"]]
+        reg = _registry.get(row["name"])
+        if reg is None:
+            texts[row["name"]] = ""
+            continue
         try:
-            texts[row["name"]] = _clean_text(reg.builder(ctx))
+            texts[row["name"]] = _cap_source(_clean_text(reg.builder(ctx)), limit, row["keep"])
         except Exception as exc:
             logger.warning("[AIContextBubble] Allotment '%s' builder failed: %s", row["name"], exc)
             texts[row["name"]] = ""
@@ -679,40 +763,52 @@ def _select_active(cfg: dict, skip) -> List[dict]:
     active = [r for r in cfg["rows"]
               if r["enabled"] and r["name"] in _registry and r["name"] not in skip]
     if len(active) > BUBBLE_MAX_ALLOTMENTS:
-        logger.warning("[AIContextBubble] %d active allotments exceed BUBBLE_MAX_ALLOTMENTS=%d; "
-                       "dropping the lowest ranks.", len(active), BUBBLE_MAX_ALLOTMENTS)
+        _warn_once("max-allot", "[AIContextBubble] %d active allotments exceed BUBBLE_MAX_ALLOTMENTS=%d; "
+                   "dropping the lowest ranks.", len(active), BUBBLE_MAX_ALLOTMENTS)
         active = active[:BUBBLE_MAX_ALLOTMENTS]
     return active
 
 
 def _render(active: List[dict], chunk_texts: Dict[str, str], constants: dict, turn: int) -> dict:
-    """Allocates budgets and renders the payload from verified chunk text."""
+    """Allocates budgets and renders the payload from verified chunk text.
+    An allotment whose grant is too small to hold even its header plus a
+    useful slice is dropped and its grant re-spilled to the others."""
     cpt = constants["chars_per_token"]
     total_chars = constants["max_context_tokens"] * cpt
     room_total = max(0, total_chars - len(_WRAP_OPEN) - len(_WRAP_CLOSE))
-    items = []
-    for row in active:
-        text = chunk_texts.get(row["name"], "")
-        demand = (len(_header(row)) + len(text) + len(_SEP)) if text else 0
-        items.append({"name": row["name"], "rank": row["rank"], "pct": row["pct"], "demand": demand})
-    alloc = ai_bubble_allocate(room_total, items)
+    dropped: set = set()
+    alloc: Dict[str, dict] = {}
+    blocks: Dict[str, str] = {}
+    for _ in range(len(active) + 1):
+        items = []
+        for row in active:
+            text = chunk_texts.get(row["name"], "")
+            demand = (len(_header(row)) + len(text) + len(_SEP)) if text and row["name"] not in dropped else 0
+            items.append({"name": row["name"], "rank": row["rank"], "pct": row["pct"], "demand": demand})
+        alloc = ai_bubble_allocate(room_total, items)
+        blocks = {}
+        newly: set = set()
+        for row in active:
+            name = row["name"]
+            text = chunk_texts.get(name, "")
+            if not text or name in dropped:
+                continue
+            head = _header(row)
+            room = alloc[name]["grant"] - len(head) - len(_SEP)
+            body = _truncate(text, room, row["keep"]) if room > 0 else ""
+            if body:
+                blocks[name] = head + body
+            else:
+                newly.add(name)
+        if not newly:
+            break
+        dropped |= newly
 
-    blocks: List[str] = []
     stats: List[dict] = []
-    used_chars = 0
     for row in active:
         a = alloc[row["name"]]
         text = chunk_texts.get(row["name"], "")
-        block = ""
-        if text:
-            head = _header(row)
-            room = a["grant"] - len(head) - len(_SEP)
-            body = _truncate(text, room, row["keep"]) if room > 0 else ""
-            if body:
-                block = head + body
-        if block:
-            blocks.append(block)
-            used_chars += len(block) + len(_SEP)
+        block = blocks.get(row["name"], "")
         stats.append({
             "name": row["name"], "label": row["label"], "rank": row["rank"], "pct": row["pct"],
             "refresh": row["refresh"], "keep": row["keep"],
@@ -720,9 +816,11 @@ def _render(active: List[dict], chunk_texts: Dict[str, str], constants: dict, tu
             "granted_tokens": a["grant"] // cpt, "used_tokens": len(block) // cpt,
             "spill_in_tokens": a["spill_in"] // cpt, "spill_out_tokens": a["spill_out"] // cpt,
             "sources": {k: v // cpt for k, v in a["sources"].items()},
-            "truncated": bool(text) and a["truncated"], "empty": not text,
+            "truncated": bool(text) and (a["truncated"] or row["name"] in dropped),
+            "empty": not text, "dropped": row["name"] in dropped,
         })
-    payload = (_WRAP_OPEN + _SEP.join(blocks) + _WRAP_CLOSE) if blocks else ""
+    ordered = [blocks[r["name"]] for r in active if r["name"] in blocks]
+    payload = (_WRAP_OPEN + _SEP.join(ordered) + _WRAP_CLOSE) if ordered else ""
     return {"text": payload, "allotments": stats,
             "used_tokens": len(payload) // cpt,
             "max_context_tokens": constants["max_context_tokens"], "chars_per_token": cpt}
@@ -753,14 +851,46 @@ def ai_bubble_prepare(
     BubbleIntegrityError only if a rebuild also fails verification.
     """
     context_dir, config_dir = Path(context_dir), Path(config_dir)
+    extras, skip = extras or {}, tuple(skip)
     with _LOCK:
         try:
-            return _prepare_locked(context_dir, config_dir, user_msg, extras or {}, tuple(skip))
-        except BubbleIntegrityError as exc:
-            logger.error("[AIContextBubble] Integrity failure (%s); rebuilding once.", exc)
-            ai_bubble_destroy(context_dir)
-            return _prepare_locked(context_dir, config_dir, user_msg, extras or {}, tuple(skip),
-                                   forced_reason="integrity")
+            try:
+                return _prepare_locked(context_dir, config_dir, user_msg, extras, skip)
+            except BubbleIntegrityError as exc:
+                logger.error("[AIContextBubble] Integrity failure (%s); rebuilding once.", exc)
+                ai_bubble_destroy(context_dir)
+                return _prepare_locked(context_dir, config_dir, user_msg, extras, skip,
+                                       forced_reason="integrity")
+        except Exception as exc:
+            # Never lose the policy/attachments because of a disk or state problem:
+            # budget and render straight from the builders, skipping the chunks.
+            logger.error("[AIContextBubble] Bubble build failed (%s: %s); sending an unchunked bubble.",
+                         type(exc).__name__, exc)
+            return _degraded(context_dir, config_dir, user_msg, extras, skip, exc)
+
+
+def _degraded(context_dir, config_dir, user_msg, extras, skip, exc) -> dict:
+    """In-memory bubble: same allocation, truncation and directives, no chunk
+    files, no state writes.  Falls back to the policy-only bubble if even
+    that fails."""
+    try:
+        constants = _constants(config_dir)
+        cfg = ai_bubble_config_load(config_dir)
+        active = _select_active(cfg, skip)
+        ctx = BubbleContext(
+            user_msg=user_msg, turn=int(_load_state(context_dir).get("turn", 0)) + 1,
+            constants=constants, context_dir=context_dir, config_dir=config_dir,
+            budget_chars=constants["max_context_tokens"] * constants["chars_per_token"], extras=extras)
+        texts = _run_builders(active, ctx)
+        out = _render(active, texts, constants, ctx.turn)
+        out.update({"rebuilt": False, "reason": f"degraded: {type(exc).__name__}", "turn": ctx.turn,
+                    "rebuild_interval": cfg["interval"], "turns_until_rebuild": 0, "chunk_path": ""})
+        return out
+    except Exception as exc2:
+        logger.error("[AIContextBubble] Unchunked bubble failed too (%s); policy only.", exc2)
+        out = ai_bubble_minimal(context_dir)
+        out["reason"] = f"degraded: {type(exc2).__name__}"
+        return out
 
 
 def _prepare_locked(context_dir, config_dir, user_msg, extras, skip, forced_reason=None) -> dict:
@@ -828,6 +958,13 @@ def _prepare_locked(context_dir, config_dir, user_msg, extras, skip, forced_reas
             _chunk_bubble(context_dir, fv, pkg)
 
     chunk_texts = _read_bubble(context_dir)
+    # The bubble on disk must carry exactly what the builders produced this
+    # turn.  A missing or stale allotment (deleted file, edited chunk, crash
+    # remnant) is an integrity failure, never a silent drop.
+    for row in active:
+        want = texts[row["name"]]
+        if want and chunk_texts.get(row["name"]) != want:
+            raise BubbleIntegrityError(f"allotment '{row['name']}' missing or stale in bubble chunk")
     rendered = _render(active, chunk_texts, constants, turn)
 
     _save_state(context_dir, {

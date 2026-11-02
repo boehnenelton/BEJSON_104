@@ -346,7 +346,7 @@ def _adapt_ollamalocal(user_input: str, model_id: Optional[str], system_instruct
 def _adapt_litertlm(user_input: str, model_id: Optional[str], system_instruction: Optional[str], **config) -> AIResponse:
     from lib_bejson_AI_bejson_litertlm import get_standard_prompter
 
-    passthrough = {k: v for k, v in config.items() if k in ("temperature", "max_tokens")}
+    passthrough = {k: v for k, v in config.items() if k in ("temperature", "max_tokens", "api_protocol")}
     extra = sorted(set(config) - set(passthrough))
     unsupported = ["config:" + ",".join(extra)] if extra else []
 

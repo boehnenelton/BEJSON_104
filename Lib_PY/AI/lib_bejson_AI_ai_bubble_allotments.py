@@ -17,12 +17,15 @@ Description:    Built-in Context Bubble allotments (used by the chat client; any
                 write one builder and one register call here (or in any plugin)
                 and raise BUBBLE_MAX_ALLOTMENTS in the library if needed.
 
-Version:        1.0.0
+Version:        1.1.0
 Date:           2026-10-20
 Author:         Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
-RELATIONAL_ID:  d2f86b04-7a3e-4c19-85d1-6e0b9a43c7f2
+RELATIONAL_ID:  b40d2785-34cf-4fe5-9c3e-08e3854b425b
 
 Changelog:
+  1.1.0 (2026-10-20) -- Hardening/optimisation: every builder reads only as much as the bubble
+        could ever send (budget + slack) -- a 50 MB attachment no longer gets read, hashed and
+        chunked each turn; history is accumulated from the newest message backwards.
   1.0.0 (2026-10-20) -- Initial creation (replaces the v1 section pipeline wiring in app.py).
 """
 
@@ -35,7 +38,7 @@ from lib_bejson_AI_ai_context_bubble import BubbleContext, ai_bubble_register_al
 
 logger = logging.getLogger(__name__)
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 HISTORY_MAX_MESSAGES = 200  # source cap; the budget truncates further, newest kept
 
@@ -60,10 +63,16 @@ DIRECTIVES = {
 }
 
 
+def _limit(ctx: BubbleContext) -> int:
+    """Most characters the bubble could ever use from one source."""
+    return max(1, int(ctx.budget_chars)) + 1024
+
+
 def build_policy(ctx: BubbleContext) -> str:
     path = Path(ctx.context_dir) / "Persistent_Policy.md"
     try:
-        return path.read_text(encoding="utf-8", errors="replace")
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            return fh.read(_limit(ctx))
     except OSError:
         return ""
 
@@ -79,15 +88,22 @@ def make_attachments_builder(list_files: Callable[[str], List[dict]], attach_dir
         if not wanted:
             return ""
         parts = []
+        remaining = _limit(ctx)
         for entry in list_files(attach_dir):
+            if remaining <= 0:
+                break
             if entry.get("file_id") not in wanted:
                 continue
             path = os.path.join(content_dir, f"{entry['file_id']}.txt")
             try:
                 with open(path, "r", encoding="utf-8", errors="replace") as fh:
-                    parts.append(f"--- ATTACHED FILE: {entry['filename']} ---\n{fh.read()}")
+                    body = fh.read(remaining)
             except OSError as exc:
                 logger.warning("attachment %s unreadable: %s", entry.get("filename"), exc)
+                continue
+            block = f"--- ATTACHED FILE: {entry['filename']} ---\n{body}"
+            parts.append(block)
+            remaining -= len(block) + 2
         return "\n\n".join(parts)
     return build_attachments
 
@@ -102,10 +118,19 @@ def make_context_builder(section_fn: Callable) -> Callable[[BubbleContext], str]
 
 
 def build_history(ctx: BubbleContext) -> str:
-    msgs = [m for m in (ctx.extras.get("history") or [])
-            if m.get("role") in ("user", "assistant") and (m.get("content") or "").strip()]
-    msgs = msgs[-HISTORY_MAX_MESSAGES:]
-    return "\n\n".join(f"[{m['role']}]: {m['content']}" for m in msgs)
+    limit = _limit(ctx)
+    lines: List[str] = []
+    used = 0
+    for m in reversed(ctx.extras.get("history") or []):   # newest first, stop once enough
+        if len(lines) >= HISTORY_MAX_MESSAGES or used > limit:
+            break
+        content = m.get("content") or ""
+        if m.get("role") not in ("user", "assistant") or not content.strip():
+            continue
+        line = f"[{m['role']}]: {content}"
+        lines.append(line)
+        used += len(line) + 2
+    return "\n\n".join(reversed(lines))
 
 
 def register_builtin_allotments(list_files: Callable[[str], List[dict]], attach_dir: str,
