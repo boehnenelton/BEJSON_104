@@ -141,6 +141,8 @@ STATIC_DEFAULTS = {
         {"service": "OllamaLocal", "model_id": "qwen2.5-coder:0.5b", "model_name": "Qwen2.5-Coder 0.5B", "flag": None},
         {"service": "OllamaLocal", "model_id": "qwen2.5-coder:3b",   "model_name": "Qwen2.5-Coder 3B",   "flag": None},
         {"service": "OllamaLocal", "model_id": "qwen2.5-coder:7b",   "model_name": "Qwen2.5-Coder 7B",   "flag": None},
+        {"service": "OllamaLocal", "model_id": "huihui_ai/qwen3-abliterated:0.6b", "model_name": "Qwen3 Abliterated 0.6B", "flag": None},
+        {"service": "OllamaLocal", "model_id": "hf.co/mradermacher/Qwen3.5-2B-Claude-4.6-OS-Auto-Variable-HERETIC-UNCENSORED-THINKING-GGUF:Q4_K_M", "model_name": "Qwen3.5 2B Heretic Thinking Q4", "flag": None},
     ],
 }
 

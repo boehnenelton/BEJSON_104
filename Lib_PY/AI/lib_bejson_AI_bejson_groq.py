@@ -2,12 +2,12 @@
 Library:        lib_bejson_AI_bejson_groq.py
 Family:         AI
 Description:    Integration wrapper for Groq API services.
-Version:        3.1.0
-Date:           2026-08-22
+Version:        3.1.1
+Date:           2026-11-09
 Author:         Elton Boehnen
 Contact:        eltonboehnen@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  7d3e9f42-1b6c-4a58-8e0d-9f2c5a7b3e14
+RELATIONAL_ID:  d53205dd-8df6-4dff-9388-d997272e69a5
 Release_Version: 300
 
 Changelog:
@@ -61,6 +61,8 @@ Changelog:
           logic. Gains GROQ_KEY_1.._10 numbered env-slot fallback.
   2.1.5 - AI-family audit fix: module-level VERSION var re-synced to a
           single source of truth.
+
+CHANGE (2026-11-09): Google Search support removed (tool, parameter and schema/profile column), per project decision.
 """
 
 import os
@@ -86,7 +88,7 @@ from lib_bejson_AI_ai_registry_base import (
     get_self_contained_dir,
 )
 
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 
 # Config_Version for this provider's model registry -- bump this whenever
 # the default model list below changes (e.g. Groq deprecates a model
@@ -122,7 +124,6 @@ GROQ_PROFILE_SCHEMA = {
         {"name": "Verbosity", "type": "string"},
         {"name": "EmotionalExpression_Enabled", "type": "boolean"},
         {"name": "EmotionalExpression_Intensity", "type": "number"},
-        {"name": "GoogleSearch_Enabled", "type": "boolean"},
         {"name": "CodeInterpreter_Enabled", "type": "boolean"},
     ],
     "Values": [
@@ -132,7 +133,7 @@ GROQ_PROFILE_SCHEMA = {
             "You are a helpful assistant. Provide clear, accurate, and concise information.",
             [], "Emoji", "", "\U0001F916", 8192, 0.7,
             ["Professional", "Helpful"], "Formal", "Balanced",
-            False, 0.0, False, True,
+            False, 0.0, True,
         ]
     ]
 }

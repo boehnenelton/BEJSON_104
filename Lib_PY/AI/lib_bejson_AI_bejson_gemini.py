@@ -9,12 +9,12 @@ Description:    Integration wrapper for Google Gemini API using the official
                  module lib_bejson_AI_bejson_interactions.py instead — the
                  Interactions API is the recommended endpoint going forward
                  per the gemini-interactions-api skill.
-Version:        2.5.0
-Date:           2026-08-22
+Version:        2.5.1
+Date:           2026-11-09
 Author:         Elton Boehnen
 Contact:        eltonboehnen@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  4c8e1f26-7b3d-49a5-8e0f-1d6c3a9b7e42
+RELATIONAL_ID:  94031a12-5799-4a65-b814-d10f1a054c32
 Release_Version: 300
 
 Changelog:
@@ -76,6 +76,8 @@ Changelog:
           fallback to "gemini-3.5-flash" (current GA default workhorse per
           gemini-api-dev skill). No behavioral/API changes otherwise —
           generate_content call shape is untouched.
+
+CHANGE (2026-11-09): Google Search support removed (tool, parameter and schema/profile column), per project decision.
 """
 
 import os
@@ -103,7 +105,7 @@ if LIB_DIR not in sys.path: sys.path.insert(0, LIB_DIR)
 CORE_DIR = os.path.join(os.path.dirname(LIB_DIR), "Core")
 if CORE_DIR not in sys.path: sys.path.insert(0, CORE_DIR)
 
-VERSION = "2.5.0"  # 2026-08-22: registry overhaul -- self-contained config/
+VERSION = "2.5.1"  # 2026-08-22: registry overhaul -- self-contained config/
                     # subfolder (no more {ADMIN_ROOT}/{HOME} paths) +
                     # config_version=2 on both registries, matching the
                     # groq.py/openrouter.py/grok.py 3.0.0/2.0.0 pass. See
@@ -153,7 +155,6 @@ _GEMINI_MODEL_LEGACY = {
     "model_id": 1, 
     "currently_active": 2,
     "thinking_enabled": 3, 
-    "google_search_enabled": 4
 }
 
 # --- Registry Managers ---
@@ -164,7 +165,7 @@ _GEMINI_MODEL_LEGACY = {
 # base doesn't have: (1) the original comma-joined GEMINI_API_KEYS env var
 # is kept working alongside the new GEMINI_KEY_1.._21 numbered-slot
 # convention (confirmed against the live secure env store), and (2) the
-# total-load-failure fallback rebuilds thinking/search positionally from
+# total-load-failure fallback rebuilds thinking positionally from
 # SCHEMA_MODEL_REGISTRY rather than the base's generic single-entry
 # fallback.
 
@@ -199,10 +200,8 @@ class GeminiModelRegistry(ModelRegistryBase):
 
     def _extra_fields(self, row, fmap):
         think_idx = fmap.get("thinking_enabled", _GEMINI_MODEL_LEGACY["thinking_enabled"])
-        search_idx = fmap.get("google_search_enabled", _GEMINI_MODEL_LEGACY["google_search_enabled"])
         return {
             "thinking": row[think_idx] if think_idx != -1 and think_idx < len(row) else False,
-            "search": row[search_idx] if search_idx != -1 and search_idx < len(row) else False,
         }
 
     def load(self) -> None:

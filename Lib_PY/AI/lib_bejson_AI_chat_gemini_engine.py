@@ -1,17 +1,19 @@
 """
 Library:         lib_bejson_AI_chat_gemini_engine.py
 Family:          AI
-Module Purpose:  Multi-turn Gemini REST chat engine: history, inline attachments, thinking, Google Search and code-execution tools, key rotation. The existing GeminiREST prompter is single-shot text-only; this adds what a chat client needs.
+Module Purpose:  Multi-turn Gemini REST chat engine: history, inline attachments, thinking, code-execution tools, key rotation. The existing GeminiREST prompter is single-shot text-only; this adds what a chat client needs.
 Architecture:    urllib only (no SDK). Keys come from a ChatKeyRotator and are sent in the x-goog-api-key header, never in the URL. Failures raise the typed errors from lib_bejson_AI_bejson_errors (E_AI_* codes); no new error codes are defined here.
-Version:         1.0.0
+Version:         1.0.1
 Release_Version: 300
-Date:            2026-10-28
+Date:            2026-11-09
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator:  Elton Boehnen
-RELATIONAL_ID:   68cda8fc-1dfc-4594-8f45-2ea601b187dc
+RELATIONAL_ID:   5da493e9-8416-4550-8fe9-6d5d2ef6265a
 
 Changelog:
   1.0.0 (2026-10-28) -- Initial creation (extension of the AI family; no existing AI library modified).
+
+CHANGE (2026-11-09): Google Search support removed (tool, parameter and schema/profile column), per project decision.
 """
 
 import json
@@ -30,7 +32,7 @@ from lib_bejson_AI_chat_key_rotator import ChatKeyRotator, chat_key_rotator_tag
 
 logger = logging.getLogger("lib_bejson_AI_chat_gemini_engine")
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_RETRYABLE_CODES = frozenset({429, 500, 503})
 _MODEL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]{0,100}$")
@@ -88,7 +90,7 @@ class GeminiChatEngine:
 
     # ---- payload -----------------------------------------------------------
     def build_payload(self, history: List[Dict[str, Any]], *, system_instruction: str = "", temperature: float = 0.7,
-                      max_output_tokens: int = 8192, thinking: bool = False, google_search: bool = False,
+                      max_output_tokens: int = 8192, thinking: bool = False,
                       code_execution: bool = False) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
             "contents": history,
@@ -100,8 +102,6 @@ class GeminiChatEngine:
         if thinking:
             payload["generationConfig"]["thinkingConfig"] = {"thinkingBudget": self.thinking_budget, "includeThoughts": True}
         tools: List[Dict[str, Any]] = []
-        if google_search:
-            tools.append({"googleSearch": {}})
         if code_execution:
             tools.append({"codeExecution": {}})
         if tools:

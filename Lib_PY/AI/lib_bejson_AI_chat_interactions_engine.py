@@ -1,18 +1,20 @@
 """
 Library:         lib_bejson_AI_chat_interactions_engine.py
 Family:          AI
-Module Purpose:  Chat adapter over the existing Gemini Interactions provider (lib_bejson_AI_bejson_interactions.GeminiInteractionsAPI): key rotation with cool-off, server-side conversation chaining via previous_interaction_id, text/image/document inputs, optional google_search / code_execution tools, typed errors.
+Module Purpose:  Chat adapter over the existing Gemini Interactions provider (lib_bejson_AI_bejson_interactions.GeminiInteractionsAPI): key rotation with cool-off, server-side conversation chaining via previous_interaction_id, text/image/document inputs, optional code_execution tool, typed errors.
 Architecture:    Wraps the provider (>= 1.2.0). Keys come from a ChatKeyRotator and are passed per call (api_key=). generation_config is opt-in (constructor flag) and UNVERIFIED against the live API, so a 400 retries without it. Failures raise the typed errors of lib_bejson_AI_bejson_errors; no new error codes.
-Version:         1.1.0
+Version:         1.2.1
 Release_Version: 300
-Date:            2026-10-29
+Date:            2026-11-09
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator:  Elton Boehnen
-RELATIONAL_ID:   0409189e-34b2-40bb-bb8c-ed7e2588b15f
+RELATIONAL_ID:   779ca3bb-573e-46a4-b222-2305e7ce4980
 
 Changelog:
   1.1.0 (2026-10-29) -- Uses interactions provider 1.2.0: opt-in generation_config (temperature / max_output_tokens / thinking), .http_status on errors, endpoint passed per call (no module-constant override), shared text/thought extractors. Falls back to a request without generation_config, then without tools, on HTTP 400.
   1.0.0 (2026-10-29) -- Initial creation (extension of the AI family; no existing AI library modified).
+
+CHANGE (2026-11-09): Google Search support removed (tool, parameter and schema/profile column), per project decision.
 """
 
 import json
@@ -37,9 +39,8 @@ except BaseException as _e:             # the provider calls sys.exit() on a mis
 
 logger = logging.getLogger("lib_bejson_AI_chat_interactions_engine")
 
-VERSION = "1.1.0"
+VERSION = "1.2.1"
 RETRYABLE_STATUS = {429, 500, 503}
-TOOL_GOOGLE_SEARCH = {"type": "google_search"}
 TOOL_CODE_EXECUTION = {"type": "code_execution"}
 
 
@@ -157,15 +158,13 @@ class InteractionsChatEngine:
 
     # `input_parts`: Interactions content blocks ({"type":"text"|"image"|"document", ...}).
     def chat_turn(self, input_parts: List[Dict[str, Any]], model: str, *, system_instruction: str = "",
-                  previous_interaction_id: Optional[str] = None, google_search: bool = False,
+                  previous_interaction_id: Optional[str] = None,
                   code_execution: bool = False, temperature: Optional[float] = None,
                   max_output_tokens: Optional[int] = None, thinking: bool = False) -> InteractionReply:
         chat_engine_validate_model_id(model)
         if self.rotator.key_count() == 0:
             raise NoAPIKeysError("No Gemini API keys loaded. Add GEMINI_KEY_1.. to secureenv_file.json.")
         tools: List[Dict[str, Any]] = []
-        if google_search:
-            tools.append(dict(TOOL_GOOGLE_SEARCH))
         if code_execution:
             tools.append(dict(TOOL_CODE_EXECUTION))
         gen_cfg: Dict[str, Any] = {}

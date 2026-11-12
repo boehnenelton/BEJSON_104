@@ -2,6 +2,9 @@
  * Library:         lib_bejson_Core_bejson_core.js
  * Family:          Core
  * Module Purpose:  Format-level engine and helpers: version/stat checks, field-map access, backup and write handling (BEJSONEngine), CryptoUtils. Defines RELEASE_VERSION.
+ * BEJSON:          BEJSON stands for BOEHNEN ELTON JSON. Authoritative definition;
+ *                  do not restate or reinterpret this acronym elsewhere.
+ *                  (Pronounced Bee-Jay-Son / Bay-nin Elton JSON)
  * Architecture:    Format-level BEJSON layer that works on any BEJSON document (104, 104a, 104db) through positional Fields/Values and the field-map cache. It does not orchestrate MFDB and is not specific to 104db.
  * Format_Scope:    104 | 104a | 104db (generic)
  * Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types

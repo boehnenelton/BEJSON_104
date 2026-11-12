@@ -7,12 +7,14 @@ Format_Scope:    104 | 104a | 104db (generic)
 Glossary:        BEJSON 104, 104a and 104db are the three file formats (Format_Version). 104db = ONE file holding 2+ entity types
                  (Record_Type_Parent discriminator, null-padding). MFDB is NOT a format and NOT 104db: it is a layer made of one 104a manifest
                  (104a.mfdb.bejson) plus dense 104 entity files linked by Parent_Hierarchy. MFDB-132 = an MFDB packed into one Chunked-104a document.
-Version:         2.3.4
+Version:         2.3.5
 Release_Version: 300
-Date:            2026-10-02
+Date:            2026-11-09
 Author:          Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator:  Elton Boehnen
-RELATIONAL_ID:   afa11f6c-77ee-4163-b98e-64773e0b18aa
+RELATIONAL_ID:   14f55724-2384-44a2-bd8c-4128a7046256
+
+CHANGE (2026-11-09): Google Search support removed (tool, parameter and schema/profile column), per project decision.
 """
 
 import json
@@ -92,15 +94,14 @@ SCHEMA_MODEL_REGISTRY_GEMINI = {
         {"name": "model_id",              "type": "string"},  # 1
         {"name": "currently_active",      "type": "boolean"}, # 2
         {"name": "thinking_enabled",      "type": "boolean"}, # 3
-        {"name": "google_search_enabled", "type": "boolean"}, # 4
-        {"name": "flag",                  "type": "string"},  # 5 (unused; e.g. "paid")
-        {"name": "service",               "type": "string"},  # 6 (unused; e.g. "image")
+        {"name": "flag",                  "type": "string"},  # 4 (unused; e.g. "paid")
+        {"name": "service",               "type": "string"},  # 5 (unused; e.g. "image")
     ],
     "Values": [
-        ["Gemini 3.6 Flash", "gemini-3.6-flash", True, True, True, "", ""],
-        ["Gemini 3.1 Pro (Preview)", "gemini-3.1-pro-preview", False, True, True, "", ""],
-        ["Gemini 3.1 Flash-Lite", "gemini-3.1-flash-lite", False, False, False, "", ""],
-        ["Gemini 2.5 Flash", "gemini-2.5-flash", False, False, False, "", ""]
+        ["Gemini 3.6 Flash", "gemini-3.6-flash", True, True, "", ""],
+        ["Gemini 3.1 Pro (Preview)", "gemini-3.1-pro-preview", False, True, "", ""],
+        ["Gemini 3.1 Flash-Lite", "gemini-3.1-flash-lite", False, False, "", ""],
+        ["Gemini 2.5 Flash", "gemini-2.5-flash", False, False, "", ""]
     ]
 }
 

@@ -29,12 +29,12 @@ Description:    The common call interface across the AI family's providers
                  model rejected) -- those come back as
                  AIResponse(success=False, error=...). It only raises for
                  programmer error (unknown provider name).
-Version:        1.8.0
-Date:           2026-10-20
+Version:        1.8.2
+Date:           2026-11-09
 Author:         Elton Boehnen
 Contact:        boehnenelton2024@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  9c4a1e7f-3d8b-4a2c-9e6f-1b5d0a8c4f37
+RELATIONAL_ID:  85db3dd6-f36d-4de7-acb4-98022044c615
 
 Changelog:
   1.8.0 (2026-10-20) -- Added provider "litertlm" (on-device LiteRT-LM server via
@@ -89,7 +89,7 @@ from lib_bejson_AI_ai_response import AIResponse, ai_response_ok, ai_response_er
 
 logger = logging.getLogger("lib_bejson_AI_ai_dispatch")
 
-VERSION = "1.8.0"
+VERSION = "1.8.2"
 
 PROVIDERS = ("groq", "openrouter", "gemini", "geminirest", "genai", "grok", "huggingface", "openai", "tokenrouter", "ollama", "ollamalocal", "litertlm")
 

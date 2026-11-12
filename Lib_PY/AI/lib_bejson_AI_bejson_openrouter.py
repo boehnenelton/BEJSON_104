@@ -2,12 +2,12 @@
 Library:        lib_bejson_AI_bejson_openrouter.py
 Family:         AI
 Description:    Multi-model routing gateway for AI interactions.
-Version:        3.2.0
-Date:           2026-09-07
+Version:        3.2.1
+Date:           2026-11-09
 Author:         Elton Boehnen
 Contact:        eltonboehnen@gmail.com | boehnenelton2024.pages.dev | github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  1f4c8b73-6d2a-4e91-9c5f-3a7d0e8b4c26
+RELATIONAL_ID:  e14e9db8-7d69-40a1-ba31-d0f244f65e80
 Release_Version: 300
 
 Changelog:
@@ -97,6 +97,8 @@ Changelog:
   2.1.4 - SCHEMA_MODEL_REGISTRY renamed to SCHEMA_MODEL_REGISTRY_OPENROUTER
           to eliminate the name collision with SCHEMA_MODEL_REGISTRY_GEMINI in
           lib_bejson_Core_bejson_schema.py (Step 1 — 1.32 finalization).
+
+CHANGE (2026-11-09): Google Search support removed (tool, parameter and schema/profile column), per project decision.
 """
 
 import os
@@ -116,7 +118,7 @@ CORE_DIR = os.path.join(os.path.dirname(LIB_DIR), "Core")
 if CORE_DIR not in sys.path:
     sys.path.append(CORE_DIR)
 
-VERSION = "3.2.0"
+VERSION = "3.2.1"
 
 # Config_Version for this provider's stores -- bump whenever a default
 # schema below changes; any on-disk file with no Config_Version, or one
@@ -193,7 +195,6 @@ SCHEMA_AI_PROFILE = {
         {"name": "Verbosity", "type": "string"},
         {"name": "EmotionalExpression_Enabled", "type": "boolean"},
         {"name": "EmotionalExpression_Intensity", "type": "number"},
-        {"name": "GoogleSearch_Enabled", "type": "boolean"},
         {"name": "CodeInterpreter_Enabled", "type": "boolean"},
         {"name": "EphemeralMemory", "type": "boolean"},
         {"name": "CodeParsing_Mode", "type": "string"},
@@ -210,7 +211,7 @@ SCHEMA_AI_PROFILE = {
             "A helpful and professional AI assistant.",
             "You are a helpful assistant. Provide clear, accurate, and concise information.",
             [], "Emoji", "", "🚀", 16384, 0.7, ["Professional", "Helpful"], "Formal", "Balanced", 
-            False, 0.0, False, True, True, "complete", ["python", "javascript"], True, True, True
+            False, 0.0, True, True, "complete", ["python", "javascript"], True, True, True
         ]
     ]
 }

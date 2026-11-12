@@ -1151,8 +1151,8 @@ The **BEJSON AI Library Family** provides a unified artificial intelligence subs
 2. **LiteRT-LM Local Edge Engine (`lib_bejson_AI_bejson_litertlm.py`)**:
    On-device inference powered by Google LiteRT-LM (formerly TensorFlow Lite) optimized for Gemma 4 (E2B, E4B, 12B) and Qwen 3.5. Supports dual-protocol REST exposure (`/v1beta/models/{model}:generateContent` and `/v1/chat/completions`), persistent in-memory KV cache reuse, thinking-channel extraction, and folder-scoped function execution sandboxes.
 
-3. **Dynamic Context Bubble v2.1.0 (`lib_bejson_AI_ai_context_bubble.py`)**:
-   Deterministic token budgeting with 8 priority-ranked partitions: `system_rules` (Rank 1), `brain_pinned` (Rank 2), `user_query` (Rank 3), `tool_results` (Rank 4), `chat_history` (Rank 5), `brain_recall` (Rank 6), `context_files` (Rank 7), and `scratch_pad` (Rank 8). Features donor-draw borrowing, spill-up allocation cascading, progressive head-tail slicing (15% head / 85% tail), and Policy §10.9 boundary sanitization.
+3. **Dynamic Context Bubble v2.2.0 (`lib_bejson_AI_ai_context_bubble.py`)**:
+   Deterministic token budgeting with 8 priority-ranked partitions: `system_rules` (Rank 1), `brain_pinned` (Rank 2), `user_query` (Rank 3), `tool_results` (Rank 4), `chat_history` (Rank 5), `brain_recall` (Rank 6), `context_files` (Rank 7), and `scratch_pad` (Rank 8). Features donor-draw borrowing, baseline normalization to 100% of context window (`Normalize_Baselines`), runtime `ai_bubble_config_update()`, group registration, `GEMINI.md` policy gate injection, progressive head-tail slicing (15% head / 85% tail), and Policy §10.9 boundary sanitization.
 
 4. **Brain MFDB Persistent Memory Engine (`lib_bejson_AI_brain_store.py`)**:
    Single-writer persistent cognitive memory coordinated by `104a.mfdb.bejson` manifests across dedicated entity tables (`memories.bejson`, `facts.bejson`, `episodes.bejson`). Enforces untrusted AI write guards, anti-hallucination fact verification, cyclic reinforcement prevention, and 3-tier snapshotting (hourly diffs, daily `.mfdb132` containers, pre-reset cold archives).
@@ -1162,6 +1162,9 @@ The **BEJSON AI Library Family** provides a unified artificial intelligence subs
 
 6. **Agent Profiles & Interactive REPL (`lib_bejson_AI_bejson_interactions.py`)**:
    Multi-turn conversational engines, dynamic YAML/BEJSON profile compilation, step-by-step turn debugging, headless web page extraction, and colorized terminal TUI visualizers.
+
+7. **Blogger API Content Publishing (`Lib_PY/AI/cli/blogger_manager.py`)**:
+   Full OAuth 2.0 integration for Google Blogger API managing automated blog discovery, post authoring, formatting, and draft/live publishing pipelines.
 
 For the exhaustive 500-feature specification and complete visual ASCII architecture diagrams, refer to the authoritative report at:
 `/storage/emulated/0/Admin/Resources/Reports/bejson_ai_library_family_architectural_overview.md`

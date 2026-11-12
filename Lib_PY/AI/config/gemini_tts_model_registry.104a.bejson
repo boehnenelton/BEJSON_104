@@ -1,0 +1,68 @@
+{
+  "Format": "BEJSON",
+  "Format_Version": "104a",
+  "Format_Creator": "Elton Boehnen",
+  "Records_Type": [
+    "AI_TTS_Model"
+  ],
+  "Fields": [
+    {
+      "name": "display_name",
+      "type": "string"
+    },
+    {
+      "name": "model_id",
+      "type": "string"
+    },
+    {
+      "name": "currently_active",
+      "type": "boolean"
+    },
+    {
+      "name": "multi_speaker_supported",
+      "type": "boolean"
+    },
+    {
+      "name": "streaming_supported",
+      "type": "boolean"
+    }
+  ],
+  "Values": [
+    [
+      "Gemini 3.8 Flash TTS",
+      "gemini-3.8-flash-tts",
+      false,
+      true,
+      true
+    ],
+    [
+      "Gemini 3.8 Flash Lite TTS",
+      "gemini-3.8-flash-lite-tts",
+      false,
+      true,
+      true
+    ],
+    [
+      "Gemini 3.1 Flash TTS (Preview)",
+      "gemini-3.1-flash-tts-preview",
+      true,
+      true,
+      true
+    ],
+    [
+      "Gemini 2.5 Flash TTS (Preview)",
+      "gemini-2.5-flash-preview-tts",
+      false,
+      true,
+      false
+    ],
+    [
+      "Gemini 2.5 Pro TTS (Preview)",
+      "gemini-2.5-pro-preview-tts",
+      false,
+      true,
+      false
+    ]
+  ],
+  "Config_Version": 2
+}

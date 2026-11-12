@@ -454,7 +454,7 @@
       "PY",
       "lib_bejson_AI_bejson_interactions.py",
       "2026-07-24",
-      "New file. Implements the Interactions API (POST /v1beta/interactions) via GeminiInteractionsAPI: create_interaction() raw wrapper, chat() full function-call loop, tool_direct() single-shot SI-injection path — 1:1 mirrors of the confirmed-working client call chain documented in GEMINI_INTERACTIONS_INCIDENT_REPORT.md. Reuses GeminiKeyRegistry/GeminiModelRegistry from lib_bejson_AI_bejson_gemini.py rather than duplicating registry logic. Includes build_text_attachment/build_image_attachment/build_document_attachment/build_attachment helpers (text->no base64, image/document->base64+mime_type; 'inline_data' is deliberately not used, see Incident 5). Uses AI family error codes E_AI_NO_API_KEYS/E_AI_INTERACTIONS_HTTP_ERROR/E_AI_INTERACTIONS_TIMEOUT. Verified end-to-end: chat() two-round function-call exchange, tool_direct() system-instruction injection, and build_attachment() text-file dispatch all tested and passing before this changelog entry was written."
+      "New file. Implements the Interactions API (POST /v1beta/interactions) via GeminiInteractionsAPI: create_interaction() raw wrapper, chat() full function-call loop, tool_direct() single-shot SI-injection path \u2014 1:1 mirrors of the confirmed-working client call chain documented in GEMINI_INTERACTIONS_INCIDENT_REPORT.md. Reuses GeminiKeyRegistry/GeminiModelRegistry from lib_bejson_AI_bejson_gemini.py rather than duplicating registry logic. Includes build_text_attachment/build_image_attachment/build_document_attachment/build_attachment helpers (text->no base64, image/document->base64+mime_type; 'inline_data' is deliberately not used, see Incident 5). Uses AI family error codes E_AI_NO_API_KEYS/E_AI_INTERACTIONS_HTTP_ERROR/E_AI_INTERACTIONS_TIMEOUT. Verified end-to-end: chat() two-round function-call exchange, tool_direct() system-instruction injection, and build_attachment() text-file dispatch all tested and passing before this changelog entry was written."
     ],
     [
       "MFDB",
@@ -973,6 +973,48 @@
       "libraries_104 (root/tree)",
       "2026-10-31",
       "5.5.1 PKG15: junk strip. Removed Core cli CLI_Doc_Chunker, showcase (PY and SH), gemini_showcase_intro, bejson_tools.zip, 3 orphan scripts, 3 orphan openai config files, 2 example files and all __pycache__; nothing referenced them. No library code changed."
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/cli/blogger_manager.py",
+      "2026-11-05",
+      "2.0.1: Added Google Blogger API integration manager (OAuth 2.0 flow, blog discovery, post publishing)."
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/lib_bejson_AI_ai_bubble_allotments.py",
+      "2026-11-05",
+      "1.2.0: Added GEMINI.md gate integration for policy injection when enabled in config/gemini_md_gate.104a.bejson."
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/lib_bejson_AI_ai_context_bubble.py",
+      "2026-11-05",
+      "2.2.0: Added baseline normalization to 100%, dynamic ai_bubble_config_update(), group prefix registration, and ai_bubble_preview()."
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/config/gemini_md_gate.104a.bejson",
+      "2026-11-05",
+      "Added ScriptConfig for GEMINI.md gate file resolution, max_chars, and heading settings."
+    ],
+    [
+      "AI",
+      "PY",
+      "Lib_PY/AI/config/openai_*",
+      "2026-11-05",
+      "Added OpenAI standard key registry, model registry, and profile configuration files."
+    ],
+    [
+      "AI",
+      "Package",
+      "libraries_104 (root/tree)",
+      "2026-11-05",
+      "5.6.0 PKG19: Synced new & updated AI family libraries from CLI_AI (PKG50)."
     ]
   ]
 }

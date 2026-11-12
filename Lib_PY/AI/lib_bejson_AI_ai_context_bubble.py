@@ -50,13 +50,25 @@ Description:    Context Bubble engine v2 -- ranked allotments with percentage
                 pool, ai_bubble_register_section/assemble.  The amnesia /
                 compression helpers are carried over unchanged at the bottom.
 
-Version:        2.1.0
-Date:           2026-10-20
+Version:        2.2.1
+Date:           2026-11-01
 Author:         Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
-RELATIONAL_ID:  319e36d3-ae83-478a-9947-b68ef79bcc2a
+RELATIONAL_ID:  bdd236f6-3968-4dd3-9d0a-32f51c7150d1
 Release_Version: 300
 
 Changelog:
+  2.2.1 (2026-11-08) -- DEFAULT_MAX_CONTEXT_TOKENS (fallback when ai_constants is missing)
+        raised 8000 -> 250000 to match ai_constants 1.3.0.
+  2.2.0 (2026-11-01) -- Feature switching + visibility:
+        * Enabled allotments' baselines are NORMALISED to 100% of the window
+          (header Normalize_Baselines, default true): switching a feature off hands
+          its share back to the others in proportion to their weights, switching it
+          on takes it again.  false = v2.1 behaviour (even cut only when over 100).
+        * ai_bubble_config_update(): validated, atomic enable/weight edits.
+        * Registration takes an optional group=; names sharing a first token
+          (brain_pinned, brain_recall) are grouped automatically.
+        * ai_bubble_preview() now also returns the full catalog (disabled and
+          unavailable rows too), per-allotment text and the effective share.
   2.1.0 (2026-10-20) -- Audit / hardening / optimisation pass:
         * Non-finite or out-of-range pct/rank/interval in context_bubble.bejson no
           longer crash (clamped / defaulted); a corrupt config runs on the registered
@@ -96,7 +108,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-VERSION = "2.1.0"
+VERSION = "2.2.1"
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +144,7 @@ except ImportError:  # degrade to hardcoded defaults
 BUBBLE_MAX_ALLOTMENTS = 8
 
 DEFAULT_REBUILD_INTERVAL_TURNS = 5
-DEFAULT_MAX_CONTEXT_TOKENS = 8000
+DEFAULT_MAX_CONTEXT_TOKENS = 250000
 DEFAULT_CHARS_PER_TOKEN = 4
 
 CONFIG_FILENAME = "context_bubble.bejson"
@@ -204,6 +216,7 @@ class _Registered:
     refresh: str
     keep: str
     directive: str
+    group: str = ""
 
 
 _registry: Dict[str, _Registered] = {}
@@ -227,6 +240,7 @@ def ai_bubble_register_allotment(
     refresh: str = REFRESH_STABLE,
     keep: str = KEEP_START,
     directive: str = "",
+    group: str = "",
 ) -> bool:
     """
     Plugin hook.  Registers an allotment.  pct/rank/enabled/... are only
@@ -257,7 +271,7 @@ def ai_bubble_register_allotment(
         _registry[name] = _Registered(
             name=name, label=(label or name).strip(), builder=builder_fn, pct=pct,
             rank=rank, enabled=enabled, refresh=refresh, keep=keep,
-            directive=(directive or "").strip(),
+            directive=(directive or "").strip(), group=_clean_str(group).lower(),
         )
     return True
 
@@ -326,7 +340,7 @@ def _config_path(config_dir: Path) -> Path:
     return Path(config_dir) / CONFIG_FILENAME
 
 
-def _build_config_doc(rows: list, interval: int) -> dict:
+def _build_config_doc(rows: list, interval: int, normalize: bool = True) -> dict:
     return {
         "Format": "BEJSON",
         "Format_Version": "104a",
@@ -334,6 +348,7 @@ def _build_config_doc(rows: list, interval: int) -> dict:
         "Schema_Name": "ContextBubbleConfig",
         "Schema_Version": "2.0.0",
         "Rebuild_Interval_Turns": interval,
+        "Normalize_Baselines": normalize,
         "Records_Type": ["Allotment"],
         "Fields": _CONFIG_FIELDS,
         "Values": rows,
@@ -390,6 +405,7 @@ def ai_bubble_config_load(config_dir: Path) -> dict:
     path = ai_bubble_config_init(Path(config_dir))
     doc = bejson_core_load_file(str(path))
     interval = DEFAULT_REBUILD_INTERVAL_TURNS
+    normalize = _to_bool(doc.get("Normalize_Baselines"), True) if isinstance(doc, dict) else True
     rows: List[dict] = []
     if not isinstance(doc, dict) or not isinstance(doc.get("Values"), list):
         # Unreadable / mangled file: never go silent.  Run on the registered
@@ -404,7 +420,7 @@ def ai_bubble_config_load(config_dir: Path) -> dict:
                          "refresh": reg.refresh, "keep": reg.keep, "label": reg.label,
                          "directive": reg.directive})
         rows.sort(key=lambda r: (r["rank"], r["name"]))
-        return {"interval": interval, "rows": rows}
+        return {"interval": interval, "rows": rows, "normalize": normalize}
     if isinstance(doc, dict):
         interval = _to_int(doc.get("Rebuild_Interval_Turns"), DEFAULT_REBUILD_INTERVAL_TURNS, _MAX_INTERVAL)
         fmap = bejson_core_get_field_map(doc)
@@ -432,7 +448,7 @@ def ai_bubble_config_load(config_dir: Path) -> dict:
                 "directive": _clean_str(cell("directive")),
             })
     rows.sort(key=lambda r: (r["rank"], r["name"]))
-    return {"interval": interval, "rows": rows}
+    return {"interval": interval, "rows": rows, "normalize": normalize}
 
 
 # ── Allocator (pure) ──────────────────────────────────────────────────────────
@@ -769,7 +785,26 @@ def _select_active(cfg: dict, skip) -> List[dict]:
     return active
 
 
-def _render(active: List[dict], chunk_texts: Dict[str, str], constants: dict, turn: int) -> dict:
+def _effective_pcts(active: List[dict], normalize: bool) -> Dict[str, float]:
+    """Share of the window each ENABLED allotment may claim as its baseline.
+    normalize=True: the configured weights are scaled so the enabled shares add
+    up to exactly 100 (all-zero weights -> an even split).  Switching an
+    allotment off therefore hands its share to the rest, in proportion to
+    their weights.  normalize=False: the weights are used as written (cut
+    evenly only if they exceed 100; any remainder is an unassigned pool)."""
+    raw = {r["name"]: float(r["pct"]) for r in active}
+    if not raw:
+        return {}
+    if not normalize:
+        return _normalise_pcts(raw)
+    total = sum(raw.values())
+    if total <= 1e-9:
+        return {k: 100.0 / len(raw) for k in raw}
+    return {k: v * 100.0 / total for k, v in raw.items()}
+
+
+def _render(active: List[dict], chunk_texts: Dict[str, str], constants: dict, turn: int,
+            normalize: bool = True, include_text: bool = False) -> dict:
     """Allocates budgets and renders the payload from verified chunk text.
     An allotment whose grant is too small to hold even its header plus a
     useful slice is dropped and its grant re-spilled to the others."""
@@ -779,12 +814,13 @@ def _render(active: List[dict], chunk_texts: Dict[str, str], constants: dict, tu
     dropped: set = set()
     alloc: Dict[str, dict] = {}
     blocks: Dict[str, str] = {}
+    shares = _effective_pcts(active, normalize)
     for _ in range(len(active) + 1):
         items = []
         for row in active:
             text = chunk_texts.get(row["name"], "")
             demand = (len(_header(row)) + len(text) + len(_SEP)) if text and row["name"] not in dropped else 0
-            items.append({"name": row["name"], "rank": row["rank"], "pct": row["pct"], "demand": demand})
+            items.append({"name": row["name"], "rank": row["rank"], "pct": shares[row["name"]], "demand": demand})
         alloc = ai_bubble_allocate(room_total, items)
         blocks = {}
         newly: set = set()
@@ -811,6 +847,7 @@ def _render(active: List[dict], chunk_texts: Dict[str, str], constants: dict, tu
         block = blocks.get(row["name"], "")
         stats.append({
             "name": row["name"], "label": row["label"], "rank": row["rank"], "pct": row["pct"],
+            "share_pct": round(shares[row["name"]], 2),
             "refresh": row["refresh"], "keep": row["keep"],
             "budget_tokens": a["budget"] // cpt, "demand_tokens": a["demand"] // cpt,
             "granted_tokens": a["grant"] // cpt, "used_tokens": len(block) // cpt,
@@ -819,15 +856,17 @@ def _render(active: List[dict], chunk_texts: Dict[str, str], constants: dict, tu
             "truncated": bool(text) and (a["truncated"] or row["name"] in dropped),
             "empty": not text, "dropped": row["name"] in dropped,
         })
+        if include_text:
+            stats[-1]["text"] = block
     ordered = [blocks[r["name"]] for r in active if r["name"] in blocks]
     payload = (_WRAP_OPEN + _SEP.join(ordered) + _WRAP_CLOSE) if ordered else ""
-    return {"text": payload, "allotments": stats,
+    return {"text": payload, "allotments": stats, "normalize": normalize,
             "used_tokens": len(payload) // cpt,
             "max_context_tokens": constants["max_context_tokens"], "chars_per_token": cpt}
 
 
 def _config_signature(cfg: dict) -> str:
-    return _sha(json.dumps([cfg["interval"], cfg["rows"]], sort_keys=True))
+    return _sha(json.dumps([cfg["interval"], cfg.get("normalize", True), cfg["rows"]], sort_keys=True))
 
 
 def ai_bubble_prepare(
@@ -882,7 +921,7 @@ def _degraded(context_dir, config_dir, user_msg, extras, skip, exc) -> dict:
             constants=constants, context_dir=context_dir, config_dir=config_dir,
             budget_chars=constants["max_context_tokens"] * constants["chars_per_token"], extras=extras)
         texts = _run_builders(active, ctx)
-        out = _render(active, texts, constants, ctx.turn)
+        out = _render(active, texts, constants, ctx.turn, cfg.get("normalize", True))
         out.update({"rebuilt": False, "reason": f"degraded: {type(exc).__name__}", "turn": ctx.turn,
                     "rebuild_interval": cfg["interval"], "turns_until_rebuild": 0, "chunk_path": ""})
         return out
@@ -965,7 +1004,7 @@ def _prepare_locked(context_dir, config_dir, user_msg, extras, skip, forced_reas
         want = texts[row["name"]]
         if want and chunk_texts.get(row["name"]) != want:
             raise BubbleIntegrityError(f"allotment '{row['name']}' missing or stale in bubble chunk")
-    rendered = _render(active, chunk_texts, constants, turn)
+    rendered = _render(active, chunk_texts, constants, turn, cfg.get("normalize", True))
 
     _save_state(context_dir, {
         "turn": turn, "turns_since_rebuild": since, "rebuild_count": rebuild_count,
@@ -977,6 +1016,81 @@ def _prepare_locked(context_dir, config_dir, user_msg, extras, skip, forced_reas
         "chunk_path": str(paths["chunk"]),
     })
     return rendered
+
+
+def _group_map() -> Dict[str, str]:
+    """name -> group.  Explicit group= wins; otherwise names that share a first
+    token with at least one other registered name (brain_pinned, brain_recall)
+    form a group named after that token."""
+    with _LOCK:
+        regs = dict(_registry)
+    tokens: Dict[str, int] = {}
+    for name in regs:
+        tok = name.split("_")[0]
+        tokens[tok] = tokens.get(tok, 0) + 1
+    out: Dict[str, str] = {}
+    for name, reg in regs.items():
+        tok = name.split("_")[0]
+        out[name] = reg.group or (tok if tokens[tok] >= 2 else "")
+    return out
+
+
+def _catalog(cfg: dict, skip: tuple = ()) -> List[dict]:
+    """Every config row -- enabled or not, available or not -- for the UI."""
+    groups = _group_map()
+    with _LOCK:
+        available = set(_registry)
+    return [{"name": r["name"], "label": r["label"], "rank": r["rank"], "pct": r["pct"],
+             "enabled": r["enabled"], "available": r["name"] in available,
+             "group": groups.get(r["name"], ""), "refresh": r["refresh"], "keep": r["keep"],
+             "skipped": r["name"] in skip} for r in cfg["rows"]]
+
+
+def ai_bubble_config_update(config_dir: Path, changes: Dict[str, Dict[str, Any]],
+                            normalize: Optional[bool] = None) -> dict:
+    """
+    Validated, atomic edit of context_bubble.bejson.
+      changes: {allotment_name: {"enabled": bool, "pct": number}}   (either key optional)
+      normalize: optional new value for Normalize_Baselines
+    Raises ValueError (nothing written) on an unknown name, a non-bool enabled
+    or a pct that is not a finite number in 0..100.  Returns the reloaded
+    config.  The next prepare sees the change and rebuilds the bubble.
+    """
+    config_dir = Path(config_dir)
+    with _LOCK:
+        path = ai_bubble_config_init(config_dir)
+        doc = bejson_core_load_file(str(path))
+        if not isinstance(doc, dict) or not isinstance(doc.get("Values"), list):
+            raise ValueError("context_bubble.bejson is unreadable; fix or delete it first")
+        fmap = bejson_core_get_field_map(doc)
+        for col in ("name", "enabled", "pct"):
+            if col not in fmap:
+                raise ValueError(f"context_bubble.bejson has no '{col}' column")
+        by_name = {_clean_str(r[fmap["name"]]): r for r in doc["Values"] if len(r) > fmap["name"]}
+        staged = []
+        for name, ch in (changes or {}).items():
+            if name not in by_name:
+                raise ValueError(f"unknown allotment: {name!r}")
+            if not isinstance(ch, dict):
+                raise ValueError(f"changes for {name!r} must be an object")
+            if "enabled" in ch:
+                if not isinstance(ch["enabled"], bool):
+                    raise ValueError(f"'enabled' for {name!r} must be true or false")
+                staged.append((by_name[name], fmap["enabled"], ch["enabled"]))
+            if "pct" in ch:
+                v = ch["pct"]
+                if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 <= v <= 100:
+                    raise ValueError(f"'pct' for {name!r} must be a number from 0 to 100")
+                staged.append((by_name[name], fmap["pct"], float(v)))
+        if normalize is not None and not isinstance(normalize, bool):
+            raise ValueError("'normalize' must be true or false")
+        for row, idx, value in staged:
+            row[idx] = value
+        if normalize is not None:
+            doc["Normalize_Baselines"] = normalize
+        if (staged or normalize is not None) and not bejson_core_atomic_write(str(path), doc):
+            raise OSError("could not write context_bubble.bejson")
+        return ai_bubble_config_load(config_dir)
 
 
 def ai_bubble_preview(
@@ -1006,11 +1120,12 @@ def ai_bubble_preview(
                 if texts[row["name"]]:
                     _chunk_allotment(tmp_root, row["rank"], row["name"], texts[row["name"]], "preview", "1")
             _chunk_bubble(tmp_root, "preview", "1")
-            rendered = _render(active, _read_bubble(tmp_root), constants, turn)
+            rendered = _render(active, _read_bubble(tmp_root), constants, turn,
+                               cfg.get("normalize", True), include_text=True)
         since = int(live.get("turns_since_rebuild", 0))
         rendered.update({
             "rebuilt": False, "reason": "preview", "turn": turn,
-            "rebuild_interval": cfg["interval"],
+            "catalog": _catalog(cfg, tuple(skip)), "rebuild_interval": cfg["interval"],
             "turns_until_rebuild": max(0, cfg["interval"] - 1 - since) if live else 0,
             "chunk_path": "",
         })

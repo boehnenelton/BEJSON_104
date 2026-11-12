@@ -6,12 +6,12 @@ Description:    AI Profile manager for the BEJSON ecosystem.
                 This_Case_Fields (no CrammedFieldNames). All reads and
                 writes go through the Field Map Cache; positional
                 look-ups are strictly prohibited.
-Version:        4.0.0
-Date:           2026-10-18
+Version:        4.0.1
+Date:           2026-11-09
 Author:         Elton Boehnen
 Contact:        boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
 Format_Creator: Elton Boehnen
-RELATIONAL_ID:  e7681929-655b-4bd8-9995-f4a67a4bc582
+RELATIONAL_ID:  21c24fd5-0319-4abe-88d6-56d566bd6dfe
 
 Changelog:
   4.0.0 (2026-10-18) -- BREAKING (API only; no profile file needs migration).
@@ -69,7 +69,7 @@ Changelog:
           Migrated all field names to This_Case convention
           (System_Instruction, Forbidden_Topics, Avatar_Source_Url,
           Max_Response_Tokens, Emotional_Expression_Enabled,
-          Emotional_Expression_Intensity, Google_Search_Enabled,
+          Emotional_Expression_Intensity,
           Code_Interpreter_Enabled, Ephemeral_Memory, Code_Parsing_Mode,
           Code_Parsing_Languages, Code_Parsing_Structure_Validation,
           Code_Parsing_Version_Control, Thinking_Supported).
@@ -78,6 +78,8 @@ Changelog:
           via the mandatory Field Map Cache.
   2.1.1 -- AI-family audit fix: added missing module-level VERSION var.
   2.1.0 -- Initial creation.
+
+CHANGE (2026-11-09): Google Search support removed (tool, parameter and schema/profile column), per project decision.
 """
 
 import json
@@ -102,7 +104,7 @@ from lib_bejson_Core_bejson_core import (
 import lib_bejson_Core_bejson_validator
 import lib_bejson_AI_profile_parser_runtime as _rt
 
-VERSION = "4.0.0"
+VERSION = "4.0.1"
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +129,6 @@ PROFILE_FIELDS: List[Dict[str, str]] = [
     {"name": "Verbosity",                      "type": "string"},
     {"name": "Emotional_Expression_Enabled",   "type": "boolean"},
     {"name": "Emotional_Expression_Intensity", "type": "number"},
-    {"name": "Google_Search_Enabled",          "type": "boolean"},
     {"name": "Code_Interpreter_Enabled",       "type": "boolean"},
     {"name": "Ephemeral_Memory",               "type": "boolean"},
     {"name": "Code_Parsing_Mode",              "type": "string"},
@@ -246,7 +247,6 @@ def gemini_profiles_create(
         kwargs.get("Verbosity", "Balanced"),
         kwargs.get("Emotional_Expression_Enabled", False),
         kwargs.get("Emotional_Expression_Intensity", 0.0),
-        kwargs.get("Google_Search_Enabled", True),
         kwargs.get("Code_Interpreter_Enabled", True),
         kwargs.get("Ephemeral_Memory", True),
         kwargs.get("Code_Parsing_Mode", "complete"),

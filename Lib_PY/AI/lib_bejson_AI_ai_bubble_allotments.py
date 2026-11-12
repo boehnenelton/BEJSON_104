@@ -6,6 +6,7 @@ Description:    Built-in Context Bubble allotments (used by the chat client; any
                 through lib_bejson_AI_ai_context_bubble.ai_bubble_register_allotment():
 
                   rank 1  persistent_policy  Persistent_Policy.md in the context dir
+                                             + ~/.gemini/GEMINI.md when the gate allows
                   rank 2  profile            the selected profile's System_Instruction
                   rank 3  attachments        files checked on the Attach tab (next message)
                   rank 4  context            the Context tab's saved ("Staged") chunk
@@ -17,18 +18,22 @@ Description:    Built-in Context Bubble allotments (used by the chat client; any
                 write one builder and one register call here (or in any plugin)
                 and raise BUBBLE_MAX_ALLOTMENTS in the library if needed.
 
-Version:        1.1.0
-Date:           2026-10-20
+Version:        1.2.0
+Date:           2026-11-02
 Author:         Elton Boehnen · boehnenelton2024@gmail.com · boehnenelton2024.pages.dev · github.com/boehnenelton
-RELATIONAL_ID:  b40d2785-34cf-4fe5-9c3e-08e3854b425b
+RELATIONAL_ID:  d3cbfbe0-209d-4b00-bed3-7c0af9cb36a5
 
 Changelog:
+  1.2.0 (2026-11-02) -- Gemini.md gate: when config/gemini_md_gate.104a.bejson has enabled=true and
+        ~/.gemini/GEMINI.md exists (folder and file matched case-insensitively), its text is injected
+        into the persistent_policy allotment (whatever rank/share that allotment has at the time).
   1.1.0 (2026-10-20) -- Hardening/optimisation: every builder reads only as much as the bubble
         could ever send (budget + slack) -- a 50 MB attachment no longer gets read, hashed and
         chunked each turn; history is accumulated from the newest message backwards.
   1.0.0 (2026-10-20) -- Initial creation (replaces the v1 section pipeline wiring in app.py).
 """
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -38,7 +43,7 @@ from lib_bejson_AI_ai_context_bubble import BubbleContext, ai_bubble_register_al
 
 logger = logging.getLogger(__name__)
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 HISTORY_MAX_MESSAGES = 200  # source cap; the budget truncates further, newest kept
 
@@ -68,13 +73,91 @@ def _limit(ctx: BubbleContext) -> int:
     return max(1, int(ctx.budget_chars)) + 1024
 
 
+GEMINI_GATE_FILENAME = "gemini_md_gate.104a.bejson"
+GEMINI_GATE_DEFAULTS = {
+    "enabled": True, "home_subdir": ".gemini", "file_name": "GEMINI.md",
+    "heading": "GEMINI.md", "max_chars": 16000,
+}
+
+
+def _load_gemini_gate(config_dir) -> dict:
+    """Gate settings from gemini_md_gate.104a.bejson (BEJSON 104a ScriptConfig).
+    Missing or corrupt file -> defaults.  Field map built once, names stripped."""
+    gate = dict(GEMINI_GATE_DEFAULTS)
+    try:
+        with open(Path(config_dir) / GEMINI_GATE_FILENAME, "r", encoding="utf-8") as fh:
+            doc = json.load(fh)
+        fmap = {str(f.get("name", "")).strip(): i for i, f in enumerate(doc.get("Fields", []))}
+        i_name, i_val = fmap["setting_name"], fmap["setting_value"]
+        for row in doc.get("Values", []):
+            key = str(row[i_name]).strip()
+            if key not in gate:
+                continue
+            val = row[i_val]
+            if isinstance(gate[key], bool):
+                if isinstance(val, bool):
+                    gate[key] = val
+            elif isinstance(gate[key], int):
+                if isinstance(val, int) and not isinstance(val, bool) and 0 < val <= 1_000_000:
+                    gate[key] = val
+            elif isinstance(val, str) and val.strip():
+                gate[key] = val.strip()
+    except FileNotFoundError:
+        pass
+    except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError) as exc:
+        logger.warning("gemini gate config unreadable (%s); using defaults", exc)
+    return gate
+
+
+def _find_ci(directory: Path, wanted: str, want_dir: bool) -> Optional[Path]:
+    """Case-insensitive lookup of one entry; exact spelling wins, then first match."""
+    exact = directory / wanted
+    if (exact.is_dir() if want_dir else exact.is_file()):
+        return exact
+    try:
+        for entry in sorted(os.scandir(directory), key=lambda e: e.name):
+            if entry.name.lower() == wanted.lower() and (entry.is_dir() if want_dir else entry.is_file()):
+                return Path(entry.path)
+    except OSError:
+        pass
+    return None
+
+
+def read_gemini_md(config_dir, limit: Optional[int] = None) -> str:
+    """Text of ~/<home_subdir>/<file_name> (case-insensitive) when the gate is enabled
+    and the file exists, else "".  Home comes from the environment, never a literal path."""
+    gate = _load_gemini_gate(config_dir)
+    if not gate["enabled"]:
+        return ""
+    try:
+        home = Path.home()
+    except (RuntimeError, KeyError):
+        return ""
+    folder = _find_ci(home, gate["home_subdir"], True)
+    target = _find_ci(folder, gate["file_name"], False) if folder else None
+    if target is None:
+        return ""
+    cap = gate["max_chars"] if limit is None else min(gate["max_chars"], limit)
+    try:
+        with open(target, "r", encoding="utf-8", errors="replace") as fh:
+            body = fh.read(cap).strip()
+    except OSError as exc:
+        logger.warning("gemini md unreadable: %s", exc)
+        return ""
+    return f"## {gate['heading']}\n{body}" if body else ""
+
+
 def build_policy(ctx: BubbleContext) -> str:
+    """Persistent_Policy.md first, then the gated GEMINI.md injection.  Both ride in the
+    persistent_policy allotment, so they use whatever rank/share it has right now."""
     path = Path(ctx.context_dir) / "Persistent_Policy.md"
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as fh:
-            return fh.read(_limit(ctx))
+            policy = fh.read(_limit(ctx))
     except OSError:
-        return ""
+        policy = ""
+    injected = read_gemini_md(ctx.config_dir, _limit(ctx))
+    return "\n\n".join(p for p in (policy.strip(), injected) if p)
 
 
 def build_profile(ctx: BubbleContext) -> str:
